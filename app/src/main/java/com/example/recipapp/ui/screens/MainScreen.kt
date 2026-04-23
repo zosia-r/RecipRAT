@@ -19,19 +19,35 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.recipapp.Recipapp
+import com.example.recipapp.ui.viewmodel.RecipeViewModel
+import com.example.recipapp.ui.viewmodel.RecipeViewModelFactory
 
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Favourites : Screen("favourites", "Favourites", Icons.Filled.Favorite)
     object Search     : Screen("search",     "Search",     Icons.Filled.Search)
     object New        : Screen("new",        "New",        Icons.Filled.Add)
+    object Detail : Screen("detail/{recipeId}", "Detail", Icons.Filled.Favorite) {
+        fun createRoute(id: Long) = "detail/$id"
+        const val routeWithArgs = "detail/{recipeId}"  // ← dodaj
+    }
 }
 
 @Composable
 fun MainScreen() {
+    val app = androidx.compose.ui.platform.LocalContext.current
+        .applicationContext as Recipapp                          // ← dodaj
+
+    val recipeViewModel: RecipeViewModel = viewModel(             // ← dodaj
+        factory = RecipeViewModelFactory(app.repository)
+    )
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -124,9 +140,31 @@ fun MainScreen() {
             startDestination = Screen.Favourites.route,
             modifier         = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Favourites.route) { FavouritesScreen() }
-            composable(Screen.New.route)        { NewRecipeScreen() }
+            composable(Screen.Favourites.route) {
+                FavouritesScreen(
+                    viewModel = recipeViewModel,
+                    onRecipeClick = { id ->
+                        navController.navigate(Screen.Detail.createRoute(id))
+                    }
+                )
+            }
+            composable(Screen.New.route)        { NewRecipeScreen(                                        // ← dodaj parametry
+                viewModel = recipeViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+            }
             composable(Screen.Search.route)     { SearchScreen() }
+            composable(
+                route = Screen.Detail.routeWithArgs,
+                arguments = listOf(navArgument("recipeId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getLong("recipeId") ?: return@composable
+                RecipeDetailScreen(
+                    recipeId = id,
+                    viewModel = recipeViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

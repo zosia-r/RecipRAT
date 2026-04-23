@@ -65,9 +65,11 @@ dependencies {
     // Videoplayer
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
-
+    // Room
     val roomVersion = "2.8.4"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
+    // Coil
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
 }
