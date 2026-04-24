@@ -15,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.recipapp.data.relation.RecipeWithDetails
+import com.example.recipapp.data.local.relation.RecipeWithDetails
 import com.example.recipapp.ui.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +102,7 @@ private fun RecipeCard(
                         Icon(
                             imageVector = if (recipe.isFavourite)
                                 Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favourites",
+                            contentDescription = "Ulubione",
                             tint = if (recipe.isFavourite)
                                 MaterialTheme.colorScheme.error
                             else
@@ -112,7 +112,7 @@ private fun RecipeCard(
                     IconButton(onClick = onDelete) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = "Usuń",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -133,7 +133,7 @@ private fun RecipeCard(
             if (recipeWithDetails.ingredients.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Ingredients: " + recipeWithDetails.ingredients
+                    text = "Składniki: " + recipeWithDetails.ingredients
                         .joinToString(", ") { it.name },
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
@@ -145,7 +145,7 @@ private fun RecipeCard(
             if (recipeWithDetails.photos.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Photos: ${recipeWithDetails.photos.size}",
+                    text = "📷 ${recipeWithDetails.photos.size} zdjęcie(-a)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

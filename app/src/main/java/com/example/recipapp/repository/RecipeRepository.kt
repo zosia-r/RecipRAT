@@ -1,11 +1,10 @@
-package com.example.recipapp.data
+package com.example.recipapp.data.repository
 
-import androidx.room.Transaction
-import com.example.recipapp.data.dao.RecipeDao
-import com.example.recipapp.data.entity.IngredientEntity
-import com.example.recipapp.data.entity.PhotoEntity
-import com.example.recipapp.data.entity.RecipeEntity
-import com.example.recipapp.data.relation.RecipeWithDetails
+import com.example.recipapp.data.local.dao.RecipeDao
+import com.example.recipapp.data.local.entity.IngredientEntity
+import com.example.recipapp.data.local.entity.PhotoEntity
+import com.example.recipapp.data.local.entity.RecipeEntity
+import com.example.recipapp.data.local.relation.RecipeWithDetails
 import kotlinx.coroutines.flow.Flow
 
 class RecipeRepository(private val dao: RecipeDao) {
@@ -17,7 +16,6 @@ class RecipeRepository(private val dao: RecipeDao) {
 
     fun searchRecipes(query: String): Flow<List<RecipeWithDetails>> = dao.searchRecipes(query)
 
-    @Transaction
     suspend fun insertFullRecipe(
         recipe: RecipeEntity,
         ingredients: List<IngredientEntity>,

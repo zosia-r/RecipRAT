@@ -1,4 +1,4 @@
-package com.example.recipapp.data.entity
+package com.example.recipapp.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

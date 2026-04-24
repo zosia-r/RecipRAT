@@ -2,11 +2,11 @@ package com.example.recipapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.recipapp.data.entity.IngredientEntity
-import com.example.recipapp.data.entity.PhotoEntity
-import com.example.recipapp.data.entity.RecipeEntity
-import com.example.recipapp.data.relation.RecipeWithDetails
-import com.example.recipapp.data.RecipeRepository
+import com.example.recipapp.data.local.entity.IngredientEntity
+import com.example.recipapp.data.local.entity.PhotoEntity
+import com.example.recipapp.data.local.entity.RecipeEntity
+import com.example.recipapp.data.local.relation.RecipeWithDetails
+import com.example.recipapp.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

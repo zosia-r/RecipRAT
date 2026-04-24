@@ -1,16 +1,16 @@
-package com.example.recipapp.data.dao
+package com.example.recipapp.data.local.dao
 
 import androidx.room.*
-import com.example.recipapp.data.entity.IngredientEntity
-import com.example.recipapp.data.entity.PhotoEntity
-import com.example.recipapp.data.entity.RecipeEntity
-import com.example.recipapp.data.relation.RecipeWithDetails
+import com.example.recipapp.data.local.entity.IngredientEntity
+import com.example.recipapp.data.local.entity.PhotoEntity
+import com.example.recipapp.data.local.entity.RecipeEntity
+import com.example.recipapp.data.local.relation.RecipeWithDetails
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RecipeDao {
 
-    // CREATE
+    // --- INSERT ---
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRecipe(recipe: RecipeEntity): Long
@@ -21,7 +21,7 @@ interface RecipeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPhotos(photos: List<PhotoEntity>)
 
-    // READ
+    // --- READ ---
 
     @Transaction
     @Query("SELECT * FROM recipes ORDER BY title ASC")
@@ -39,7 +39,7 @@ interface RecipeDao {
     @Query("SELECT * FROM recipes WHERE title LIKE '%' || :query || '%'")
     fun searchRecipes(query: String): Flow<List<RecipeWithDetails>>
 
-    // UPDATE
+    // --- UPDATE ---
 
     @Query("UPDATE recipes SET isFavourite = :isFavourite WHERE id = :id")
     suspend fun updateFavourite(id: Long, isFavourite: Boolean)
@@ -47,7 +47,7 @@ interface RecipeDao {
     @Update
     suspend fun updateRecipe(recipe: RecipeEntity)
 
-    // DELETE
+    // --- DELETE ---
 
     @Delete
     suspend fun deleteRecipe(recipe: RecipeEntity)

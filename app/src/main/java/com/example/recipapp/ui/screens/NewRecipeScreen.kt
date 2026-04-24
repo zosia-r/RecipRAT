@@ -38,7 +38,7 @@ fun NewRecipeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Recipe") },
+                title = { Text("Nowy przepis") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Wróć")
@@ -63,9 +63,9 @@ fun NewRecipeScreen(
                     title = it
                     titleError = false
                 },
-                label = { Text("Title *") },
+                label = { Text("Tytuł *") },
                 isError = titleError,
-                supportingText = { if (titleError) Text("Title is required") },
+                supportingText = { if (titleError) Text("Tytuł jest wymagany") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -74,13 +74,13 @@ fun NewRecipeScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description") },
+                label = { Text("Opis") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
 
             // Składniki
-            Text("Ingrediets", style = MaterialTheme.typography.titleSmall)
+            Text("Składniki", style = MaterialTheme.typography.titleSmall)
             ingredients.forEachIndexed { index, ingredient ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -92,7 +92,7 @@ fun NewRecipeScreen(
                             ingredients = ingredients.toMutableList()
                                 .also { it[index] = newVal }
                         },
-                        label = { Text("Ingredient ${index + 1}") },
+                        label = { Text("Składnik ${index + 1}") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -112,27 +112,27 @@ fun NewRecipeScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
-                Text("Add ingredient")
+                Text("Dodaj składnik")
             }
 
             // Opis wykonania
             OutlinedTextField(
                 value = executionDescription,
                 onValueChange = { executionDescription = it },
-                label = { Text("Execution description") },
+                label = { Text("Sposób wykonania") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4
             )
 
             // Zdjęcia
-            Text("Photos (${photoUris.size})", style = MaterialTheme.typography.titleSmall)
+            Text("Zdjęcia (${photoUris.size})", style = MaterialTheme.typography.titleSmall)
             OutlinedButton(
                 onClick = { photoPickerLauncher.launch("image/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Add photos")
+                Text("Dodaj zdjęcia")
             }
             if (photoUris.isNotEmpty()) {
                 photoUris.forEach { uri ->
@@ -175,7 +175,7 @@ fun NewRecipeScreen(
                     .fillMaxWidth()
                     .padding(bottom = 24.dp)
             ) {
-                Text("Save Recipe")
+                Text("Zapisz przepis")
             }
         }
     }
