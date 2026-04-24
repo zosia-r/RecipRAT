@@ -36,7 +36,7 @@ fun RecipeDetailScreen(
                 title = { Text(recipe?.title ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Wróć")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -47,7 +47,7 @@ fun RecipeDetailScreen(
                             Icon(
                                 imageVector = if (it.isFavourite)
                                     Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Ulubione",
+                                contentDescription = "Favourites",
                                 tint = if (it.isFavourite)
                                     MaterialTheme.colorScheme.error
                                 else
@@ -79,7 +79,7 @@ fun RecipeDetailScreen(
             if (photos.isNotEmpty()) {
                 AsyncImage(
                     model = photos.first().uri,
-                    contentDescription = "Zdjęcie przepisu",
+                    contentDescription = "Recipe photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -106,7 +106,7 @@ fun RecipeDetailScreen(
                 // Składniki
                 val ingredients = recipeWithDetails!!.ingredients
                 if (ingredients.isNotEmpty()) {
-                    SectionCard(title = "Składniki") {
+                    SectionCard(title = "Ingredients") {
                         ingredients.forEachIndexed { index, ingredient ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -138,7 +138,7 @@ fun RecipeDetailScreen(
 
                 // Sposób wykonania
                 if (recipe.executionDescription.isNotBlank()) {
-                    SectionCard(title = "Sposób wykonania") {
+                    SectionCard(title = "Execution description") {
                         Text(
                             text = recipe.executionDescription,
                             style = MaterialTheme.typography.bodyMedium
@@ -148,7 +148,7 @@ fun RecipeDetailScreen(
 
                 // Pozostałe zdjęcia
                 if (photos.size > 1) {
-                    SectionCard(title = "Zdjęcia") {
+                    SectionCard(title = "Photos") {
                         photos.drop(1).forEach { photo ->
                             AsyncImage(
                                 model = photo.uri,
