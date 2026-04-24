@@ -1,4 +1,4 @@
-package com.example.recipapp.data.local.entity
+package com.example.recipapp.data.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -6,19 +6,18 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "ingredients",
+    tableName = "photos",
     foreignKeys = [ForeignKey(
         entity = RecipeEntity::class,
         parentColumns = ["id"],
         childColumns = ["recipeId"],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("recipeId")]
+    indices = [Index("recipeId")]   // przyspiesza pobieranie zdjec do przepisu
 )
-data class IngredientEntity(
+data class PhotoEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val recipeId: Long,
-    val name: String,
-    val amount: String
+    val uri: String
 )

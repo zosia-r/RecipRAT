@@ -2,7 +2,7 @@ package com.example.recipapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.recipapp.data.repository.RecipeRepository
+import com.example.recipapp.data.RecipeRepository
 
 class RecipeViewModelFactory(
     private val repository: RecipeRepository
