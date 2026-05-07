@@ -1,6 +1,7 @@
 package com.example.recipapp.ui.screens
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -28,13 +29,13 @@ fun RecipeDetailScreen(
     recipeId: Long,
     viewModel: RecipeViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToEdit: (Long) -> Unit
+    onNavigateToEdit: (Long) -> Unit,
+    onPhotoClick: (String) -> Unit          // uri klikniętego zdjęcia
 ) {
     val context = LocalContext.current
     val recipeWithDetails by viewModel.getRecipeById(recipeId).collectAsState(initial = null)
     val recipe = recipeWithDetails?.recipe
 
-    // stan checkboxów dla składników – key: index składnika, value: czy odhaczony
     val checkedIngredients = remember { mutableStateMapOf<Int, Boolean>() }
 
     Scaffold(
@@ -48,13 +49,12 @@ fun RecipeDetailScreen(
                 },
                 actions = {
                     recipe?.let { r ->
-                        // Udostępnij
                         IconButton(onClick = {
                             val text = buildShareText(
-                                title = r.title,
+                                title       = r.title,
                                 description = r.description,
                                 ingredients = recipeWithDetails!!.ingredients.map { it.name },
-                                steps = r.executionDescription
+                                steps       = r.executionDescription
                             )
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -65,16 +65,10 @@ fun RecipeDetailScreen(
                         }) {
                             Icon(Icons.Default.Share, contentDescription = "Share")
                         }
-
-                        // Edytuj
                         IconButton(onClick = { onNavigateToEdit(r.id) }) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit")
                         }
-
-                        // Ulubione
-                        IconButton(onClick = {
-                            viewModel.toggleFavourite(r.id, r.isFavourite)
-                        }) {
+                        IconButton(onClick = { viewModel.toggleFavourite(r.id, r.isFavourite) }) {
                             Icon(
                                 imageVector = if (r.isFavourite)
                                     Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -103,27 +97,28 @@ fun RecipeDetailScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── Zdjęcia – poziomy pager ──────────────────────────────────────
+            // ── Zdjęcia – poziomy pager, klik = pełny ekran ─────────────────
             val photos = recipeWithDetails!!.photos
             if (photos.isNotEmpty()) {
                 val pagerState = rememberPagerState(pageCount = { photos.size })
 
                 Box {
                     HorizontalPager(
-                        state = pagerState,
+                        state    = pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(250.dp)
                     ) { page ->
                         AsyncImage(
-                            model = photos[page].uri,
+                            model              = photos[page].uri,
                             contentDescription = "Photo ${page + 1}",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            contentScale       = ContentScale.Crop,
+                            modifier           = Modifier
+                                .fillMaxSize()
+                                .clickable { onPhotoClick(photos[page].uri) }  // ← klik otwiera podgląd
                         )
                     }
 
-                    // Wskaźnik strony (kropki) – widoczny tylko gdy >1 zdjęcie
                     if (photos.size > 1) {
                         Row(
                             modifier = Modifier
@@ -135,8 +130,8 @@ fun RecipeDetailScreen(
                                 val isSelected = pagerState.currentPage == index
                                 Surface(
                                     modifier = Modifier.size(if (isSelected) 8.dp else 6.dp),
-                                    shape = MaterialTheme.shapes.extraSmall,
-                                    color = if (isSelected)
+                                    shape    = MaterialTheme.shapes.extraSmall,
+                                    color    = if (isSelected)
                                         MaterialTheme.colorScheme.primary
                                     else
                                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
@@ -151,17 +146,12 @@ fun RecipeDetailScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ── Opis ─────────────────────────────────────────────────────
                 if (recipe!!.description.isNotBlank()) {
                     SectionCard(title = "Opis") {
-                        Text(
-                            text = recipe.description,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text(text = recipe.description, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
-                // ── Składniki z checkboxami ──────────────────────────────────
                 val ingredients = recipeWithDetails!!.ingredients
                 if (ingredients.isNotEmpty()) {
                     SectionCard(title = "Ingredients") {
@@ -169,18 +159,16 @@ fun RecipeDetailScreen(
                             val isChecked = checkedIngredients[index] == true
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp)
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                             ) {
                                 Checkbox(
-                                    checked = isChecked,
+                                    checked         = isChecked,
                                     onCheckedChange = { checkedIngredients[index] = it }
                                 )
                                 Text(
-                                    text = ingredient.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isChecked)
+                                    text     = ingredient.name,
+                                    style    = MaterialTheme.typography.bodyMedium,
+                                    color    = if (isChecked)
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     else
                                         MaterialTheme.colorScheme.onSurface,
@@ -188,7 +176,7 @@ fun RecipeDetailScreen(
                                 )
                                 if (ingredient.amount.isNotBlank()) {
                                     Text(
-                                        text = ingredient.amount,
+                                        text  = ingredient.amount,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -198,26 +186,18 @@ fun RecipeDetailScreen(
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
                             }
                         }
-
-                        // Przycisk resetowania checkboxów
                         if (checkedIngredients.values.any { it }) {
                             TextButton(
-                                onClick = { checkedIngredients.clear() },
+                                onClick  = { checkedIngredients.clear() },
                                 modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("Reset")
-                            }
+                            ) { Text("Reset") }
                         }
                     }
                 }
 
-                // ── Sposób wykonania ─────────────────────────────────────────
                 if (recipe.executionDescription.isNotBlank()) {
                     SectionCard(title = "Execution description") {
-                        Text(
-                            text = recipe.executionDescription,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text(text = recipe.executionDescription, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
@@ -227,7 +207,6 @@ fun RecipeDetailScreen(
     }
 }
 
-/** Buduje tekst do udostępnienia */
 private fun buildShareText(
     title: String,
     description: String,
@@ -235,36 +214,25 @@ private fun buildShareText(
     steps: String
 ): String = buildString {
     appendLine("🍴 $title")
-    if (description.isNotBlank()) {
-        appendLine()
-        appendLine(description)
-    }
+    if (description.isNotBlank()) { appendLine(); appendLine(description) }
     if (ingredients.isNotEmpty()) {
-        appendLine()
-        appendLine("Ingredients:")
+        appendLine(); appendLine("Ingredients:")
         ingredients.forEach { appendLine("• $it") }
     }
-    if (steps.isNotBlank()) {
-        appendLine()
-        appendLine("Preparation:")
-        appendLine(steps)
-    }
+    if (steps.isNotBlank()) { appendLine(); appendLine("Preparation:"); appendLine(steps) }
 }
 
 @Composable
-private fun SectionCard(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
+private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
+        colors   = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = title,
+                text  = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )

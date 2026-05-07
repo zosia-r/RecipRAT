@@ -29,6 +29,9 @@ import androidx.navigation.navArgument
 import com.example.recipapp.Recipapp
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Favourites : Screen("favourites", "Favourites", Icons.Filled.Favorite)
@@ -41,6 +44,14 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Edit : Screen("edit/{recipeId}", "Edit", Icons.Filled.Edit) {
         fun createRoute(id: Long) = "edit/$id"
         const val routeWithArgs = "edit/{recipeId}"
+    }
+    object PhotoViewer : Screen("photo/{uri}", "Photo", Icons.Filled.Favorite) {
+        // URI musi być zakodowane bo zawiera znaki specjalne (/, :, .)
+        fun createRoute(uri: String): String {
+            val encoded = URLEncoder.encode(uri, StandardCharsets.UTF_8.toString())
+            return "photo/$encoded"
+        }
+        const val routeWithArgs = "photo/{uri}"
     }
 }
 
@@ -59,9 +70,12 @@ fun MainScreen() {
     val pink   = Color(0xFFE91E63)
     val pinkBg = Color(0xFFFCE4EC)
 
-    fun navigateTo(route: String) {
+    // Tylko dla przycisków bottom bara – używa popUpTo + saveState
+    fun navigateToTab(route: String) {
         navController.navigate(route) {
-            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
             launchSingleTop = true
             restoreState    = true
         }
@@ -73,15 +87,13 @@ fun MainScreen() {
                 containerColor = Color.White,
                 contentColor   = pink
             ) {
-                // ── Favourites ──────────────────────────────────────────────
                 val favSelected = currentDestination?.hierarchy
                     ?.any { it.route == Screen.Favourites.route } == true
-
                 NavigationBarItem(
                     icon     = { Icon(Screen.Favourites.icon, contentDescription = null) },
                     label    = { Text(Screen.Favourites.label) },
                     selected = favSelected,
-                    onClick  = { navigateTo(Screen.Favourites.route) },
+                    onClick  = { navigateToTab(Screen.Favourites.route) },
                     colors   = NavigationBarItemDefaults.colors(
                         selectedIconColor   = pink,
                         unselectedIconColor = Color.Gray,
@@ -89,10 +101,8 @@ fun MainScreen() {
                     )
                 )
 
-                // ── New (wyróżniony) ────────────────────────────────────────
                 val newSelected = currentDestination?.hierarchy
                     ?.any { it.route == Screen.New.route } == true
-
                 NavigationBarItem(
                     icon = {
                         Box(
@@ -113,7 +123,7 @@ fun MainScreen() {
                     },
                     label    = { Text(Screen.New.label, color = if (newSelected) pink else Color.Gray) },
                     selected = newSelected,
-                    onClick  = { navigateTo(Screen.New.route) },
+                    onClick  = { navigateToTab(Screen.New.route) },
                     colors   = NavigationBarItemDefaults.colors(
                         selectedIconColor   = Color.Transparent,
                         unselectedIconColor = Color.Transparent,
@@ -121,15 +131,13 @@ fun MainScreen() {
                     )
                 )
 
-                // ── Search ──────────────────────────────────────────────────
                 val searchSelected = currentDestination?.hierarchy
                     ?.any { it.route == Screen.Search.route } == true
-
                 NavigationBarItem(
                     icon     = { Icon(Screen.Search.icon, contentDescription = null) },
                     label    = { Text(Screen.Search.label) },
                     selected = searchSelected,
-                    onClick  = { navigateTo(Screen.Search.route) },
+                    onClick  = { navigateToTab(Screen.Search.route) },
                     colors   = NavigationBarItemDefaults.colors(
                         selectedIconColor   = pink,
                         unselectedIconColor = Color.Gray,
@@ -171,9 +179,8 @@ fun MainScreen() {
                     recipeId         = id,
                     viewModel        = recipeViewModel,
                     onNavigateBack   = { navController.popBackStack() },
-                    onNavigateToEdit = { recipeId ->
-                        navController.navigate(Screen.Edit.createRoute(recipeId))
-                    }
+                    onNavigateToEdit = { recipeId -> navController.navigate(Screen.Edit.createRoute(recipeId)) },
+                    onPhotoClick     = { uri -> navController.navigate(Screen.PhotoViewer.createRoute(uri)) }
                 )
             }
             composable(
@@ -184,6 +191,17 @@ fun MainScreen() {
                 EditRecipeScreen(
                     recipeId       = id,
                     viewModel      = recipeViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route     = Screen.PhotoViewer.routeWithArgs,
+                arguments = listOf(navArgument("uri") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val encoded = backStackEntry.arguments?.getString("uri") ?: return@composable
+                val uri = URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString())
+                PhotoViewerScreen(
+                    initialUri     = uri,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
