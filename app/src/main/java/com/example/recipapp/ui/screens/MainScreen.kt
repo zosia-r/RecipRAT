@@ -26,8 +26,8 @@ import androidx.navigation.compose.*
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.recipapp.Recipapp
-import com.example.recipapp.ui.viewmodel.RecipeViewModel
-import com.example.recipapp.ui.viewmodel.RecipeViewModelFactory
+import com.example.recipapp.viewmodel.RecipeViewModel
+import com.example.recipapp.viewmodel.RecipeViewModelFactory
 
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -45,8 +45,8 @@ fun MainScreen() {
     val app = androidx.compose.ui.platform.LocalContext.current
         .applicationContext as Recipapp                          // ← dodaj
 
-    val recipeViewModel: RecipeViewModel = viewModel(             // ← dodaj
-        factory = RecipeViewModelFactory(app.repository)
+    val recipeViewModel: RecipeViewModel = viewModel(
+        factory = RecipeViewModelFactory(app, app.repository)
     )
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -153,7 +153,14 @@ fun MainScreen() {
                 onNavigateBack = { navController.popBackStack() }
             )
             }
-            composable(Screen.Search.route)     { SearchScreen() }
+            composable(Screen.Search.route) {
+                SearchScreen(
+                    viewModel = recipeViewModel,
+                    onRecipeClick = { id ->
+                        navController.navigate(Screen.Detail.createRoute(id))
+                    }
+                )
+            }
             composable(
                 route = Screen.Detail.routeWithArgs,
                 arguments = listOf(navArgument("recipeId") { type = NavType.LongType })

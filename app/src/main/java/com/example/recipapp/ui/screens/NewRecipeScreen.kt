@@ -15,7 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.recipapp.ui.viewmodel.RecipeViewModel
+import com.example.recipapp.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,7 +167,7 @@ fun NewRecipeScreen(
                         description = description.trim(),
                         executionDescription = executionDescription.trim(),
                         ingredients = ingredients,
-                        photoUris = photoUris.map { it.toString() }
+                        photoUris = photoUris                         // ← przekaż Uri bezpośrednio
                     )
                     onNavigateBack()
                 },
