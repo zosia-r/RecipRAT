@@ -57,4 +57,8 @@ interface RecipeDao {
 
     @Query("DELETE FROM photos WHERE recipeId = :recipeId")
     suspend fun deletePhotosByRecipe(recipeId: Long)
+
+    /** Usuwa konkretne zdjęcia po ścieżce – używane przy edycji przepisu */
+    @Query("DELETE FROM photos WHERE uri IN (:paths)")
+    suspend fun deletePhotosByPaths(paths: List<String>)
 }

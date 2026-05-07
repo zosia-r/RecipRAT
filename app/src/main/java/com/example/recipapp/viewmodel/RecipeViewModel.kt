@@ -74,6 +74,33 @@ class RecipeViewModel(
         }
     }
 
+    fun updateRecipe(
+        recipe: RecipeEntity,
+        ingredients: List<String>,
+        newPhotoUris: List<Uri> = emptyList(),
+        removedPhotoPaths: List<String> = emptyList()
+    ) {
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+
+            // Usuń pliki zdjęć skasowanych przez użytkownika
+            removedPhotoPaths.forEach { path -> File(path).takeIf { it.exists() }?.delete() }
+
+            // Skopiuj nowe zdjęcia
+            val newPhotoEntities = newPhotoUris.map { uri ->
+                val savedPath = copyPhotoToAppStorage(context, uri)
+                PhotoEntity(recipeId = recipe.id, uri = savedPath)
+            }
+
+            // Składniki jako encje
+            val ingredientEntities = ingredients
+                .filter { it.isNotBlank() }
+                .map { IngredientEntity(recipeId = recipe.id, name = it, amount = "") }
+
+            repository.updateRecipe(recipe, ingredientEntities, newPhotoEntities, removedPhotoPaths)
+        }
+    }
+
     fun toggleFavourite(id: Long, current: Boolean) {
         viewModelScope.launch {
             repository.toggleFavourite(id, !current)
@@ -88,8 +115,6 @@ class RecipeViewModel(
 
     fun getRecipeById(id: Long): Flow<RecipeWithDetails?> =
         repository.getRecipeById(id)
-
-    // ── Pomocnicza funkcja kopiująca zdjęcie ─────────────────────────────────
 
     private fun copyPhotoToAppStorage(context: Context, uri: Uri): String {
         val dir = File(context.filesDir, "recipe_photos").also { it.mkdirs() }

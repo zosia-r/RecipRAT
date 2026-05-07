@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -22,13 +23,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.*
 import androidx.navigation.NavType
+import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.recipapp.Recipapp
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
-
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Favourites : Screen("favourites", "Favourites", Icons.Filled.Favorite)
@@ -36,14 +36,18 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object New        : Screen("new",        "New",        Icons.Filled.Add)
     object Detail : Screen("detail/{recipeId}", "Detail", Icons.Filled.Favorite) {
         fun createRoute(id: Long) = "detail/$id"
-        const val routeWithArgs = "detail/{recipeId}"  // ← dodaj
+        const val routeWithArgs = "detail/{recipeId}"
+    }
+    object Edit : Screen("edit/{recipeId}", "Edit", Icons.Filled.Edit) {
+        fun createRoute(id: Long) = "edit/$id"
+        const val routeWithArgs = "edit/{recipeId}"
     }
 }
 
 @Composable
 fun MainScreen() {
     val app = androidx.compose.ui.platform.LocalContext.current
-        .applicationContext as Recipapp                          // ← dodaj
+        .applicationContext as Recipapp
 
     val recipeViewModel: RecipeViewModel = viewModel(
         factory = RecipeViewModelFactory(app, app.repository)
@@ -52,8 +56,8 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val pink    = Color(0xFFE91E63)
-    val pinkBg  = Color(0xFFFCE4EC)
+    val pink   = Color(0xFFE91E63)
+    val pinkBg = Color(0xFFFCE4EC)
 
     fun navigateTo(route: String) {
         navController.navigate(route) {
@@ -74,8 +78,8 @@ fun MainScreen() {
                     ?.any { it.route == Screen.Favourites.route } == true
 
                 NavigationBarItem(
-                    icon    = { Icon(Screen.Favourites.icon, contentDescription = null) },
-                    label   = { Text(Screen.Favourites.label) },
+                    icon     = { Icon(Screen.Favourites.icon, contentDescription = null) },
+                    label    = { Text(Screen.Favourites.label) },
                     selected = favSelected,
                     onClick  = { navigateTo(Screen.Favourites.route) },
                     colors   = NavigationBarItemDefaults.colors(
@@ -113,7 +117,7 @@ fun MainScreen() {
                     colors   = NavigationBarItemDefaults.colors(
                         selectedIconColor   = Color.Transparent,
                         unselectedIconColor = Color.Transparent,
-                        indicatorColor      = Color.Transparent   // wyłączamy domyślne podświetlenie
+                        indicatorColor      = Color.Transparent
                     )
                 )
 
@@ -122,8 +126,8 @@ fun MainScreen() {
                     ?.any { it.route == Screen.Search.route } == true
 
                 NavigationBarItem(
-                    icon    = { Icon(Screen.Search.icon, contentDescription = null) },
-                    label   = { Text(Screen.Search.label) },
+                    icon     = { Icon(Screen.Search.icon, contentDescription = null) },
+                    label    = { Text(Screen.Search.label) },
                     selected = searchSelected,
                     onClick  = { navigateTo(Screen.Search.route) },
                     colors   = NavigationBarItemDefaults.colors(
@@ -142,33 +146,44 @@ fun MainScreen() {
         ) {
             composable(Screen.Favourites.route) {
                 FavouritesScreen(
-                    viewModel = recipeViewModel,
-                    onRecipeClick = { id ->
-                        navController.navigate(Screen.Detail.createRoute(id))
-                    }
+                    viewModel     = recipeViewModel,
+                    onRecipeClick = { id -> navController.navigate(Screen.Detail.createRoute(id)) }
                 )
             }
-            composable(Screen.New.route)        { NewRecipeScreen(                                        // ← dodaj parametry
-                viewModel = recipeViewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            composable(Screen.New.route) {
+                NewRecipeScreen(
+                    viewModel      = recipeViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Search.route) {
                 SearchScreen(
-                    viewModel = recipeViewModel,
-                    onRecipeClick = { id ->
-                        navController.navigate(Screen.Detail.createRoute(id))
-                    }
+                    viewModel     = recipeViewModel,
+                    onRecipeClick = { id -> navController.navigate(Screen.Detail.createRoute(id)) }
                 )
             }
             composable(
-                route = Screen.Detail.routeWithArgs,
+                route     = Screen.Detail.routeWithArgs,
                 arguments = listOf(navArgument("recipeId") { type = NavType.LongType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getLong("recipeId") ?: return@composable
                 RecipeDetailScreen(
-                    recipeId = id,
-                    viewModel = recipeViewModel,
+                    recipeId         = id,
+                    viewModel        = recipeViewModel,
+                    onNavigateBack   = { navController.popBackStack() },
+                    onNavigateToEdit = { recipeId ->
+                        navController.navigate(Screen.Edit.createRoute(recipeId))
+                    }
+                )
+            }
+            composable(
+                route     = Screen.Edit.routeWithArgs,
+                arguments = listOf(navArgument("recipeId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getLong("recipeId") ?: return@composable
+                EditRecipeScreen(
+                    recipeId       = id,
+                    viewModel      = recipeViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

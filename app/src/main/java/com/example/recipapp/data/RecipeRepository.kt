@@ -28,16 +28,26 @@ class RecipeRepository(private val dao: RecipeDao) {
         dao.insertPhotos(photos.map { it.copy(recipeId = recipeId) })
     }
 
+    @Transaction
     suspend fun updateRecipe(
         recipe: RecipeEntity,
         ingredients: List<IngredientEntity>,
-        photos: List<PhotoEntity>
+        newPhotos: List<PhotoEntity>,
+        removedPhotoPaths: List<String>
     ) {
         dao.updateRecipe(recipe)
+
+        // Składniki – usuń stare, wstaw nowe
         dao.deleteIngredientsByRecipe(recipe.id)
-        dao.deletePhotosByRecipe(recipe.id)
         dao.insertIngredients(ingredients.map { it.copy(recipeId = recipe.id) })
-        dao.insertPhotos(photos.map { it.copy(recipeId = recipe.id) })
+
+        // Zdjęcia – usuń tylko te skasowane przez użytkownika, dodaj nowe
+        if (removedPhotoPaths.isNotEmpty()) {
+            dao.deletePhotosByPaths(removedPhotoPaths)
+        }
+        if (newPhotos.isNotEmpty()) {
+            dao.insertPhotos(newPhotos.map { it.copy(recipeId = recipe.id) })
+        }
     }
 
     suspend fun deleteRecipe(recipe: RecipeEntity) = dao.deleteRecipe(recipe)

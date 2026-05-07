@@ -18,11 +18,11 @@ fun FavouritesScreen(
     viewModel: RecipeViewModel,
     onRecipeClick: (Long) -> Unit
 ) {
-    val recipes by viewModel.allRecipes.collectAsState()
+    val recipes by viewModel.favouriteRecipes.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Wszystkie przepisy") })
+            TopAppBar(title = { Text("Ulubione przepisy") })
         }
     ) { padding ->
         if (recipes.isEmpty()) {
@@ -33,8 +33,7 @@ fun FavouritesScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Brak przepisów.\nDodaj pierwszy przepis!",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "Brak ulubionych.\nDodaj przepis do ulubionych!",                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
