@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.viewmodel.RecipeViewModel
 
+// cześć mam na imię Pompcia
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
