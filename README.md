@@ -5,9 +5,8 @@
 - animacja tytułu na splashscreen
 - szczegóły przepisu:
   - animacja rozwijania szczegółów
-  - checkboxy przy składnikach
   - minutnik
-  - udostepnianie
-  - edycja
+  - photoviewer: powinien być pełnoekranowy i powinna być w nim możliwość swipeowania
+  - gdy przechodze favourites -> recipeDetail -> search -> favourites włącza mi recipeDetail
   - powielanie wielkości porcji -> wymaga zmiany sposobu przechowywania i wpisywania składników
   - tagi -> wyszukiwanie po tagach
