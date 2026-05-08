@@ -189,9 +189,9 @@ fun SearchScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text  = if (searchQuery.isBlank() && selectedTags.isEmpty())
-                            "Brak przepisów.\nDodaj pierwszy przepis!"
+                            "No recipes dound.\nAdd your first recipe!"
                         else
-                            "Brak wyników dla podanych kryteriów",
+                            "No recipes found matching your search",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

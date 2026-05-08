@@ -22,7 +22,7 @@ fun FavouritesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Ulubione przepisy") })
+            TopAppBar(title = { Text("Favourite Recipes") })
         }
     ) { padding ->
         if (recipes.isEmpty()) {
@@ -33,7 +33,7 @@ fun FavouritesScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Brak ulubionych.\nDodaj przepis do ulubionych!",                    style = MaterialTheme.typography.bodyLarge,
+                    text = "No favourites recipes found.\n Add a recipe to your favourites!",                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

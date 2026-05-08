@@ -236,7 +236,7 @@ fun RecipeDetailScreen(
 
                 // ── Opis ─────────────────────────────────────────────────────
                 if (recipe.description.isNotBlank()) {
-                    SectionCard("Opis") {
+                    SectionCard("Description") {
                         Text(recipe.description, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -287,7 +287,7 @@ fun RecipeDetailScreen(
 
                 // ── Sposób wykonania ──────────────────────────────────────────
                 if (recipe.executionDescription.isNotBlank()) {
-                    SectionCard("Execution description") {
+                    SectionCard("Instructions") {
                         Text(recipe.executionDescription, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
