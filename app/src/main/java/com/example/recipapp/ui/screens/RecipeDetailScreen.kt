@@ -17,8 +17,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
 import com.example.recipapp.timer.toTimeString
@@ -48,13 +49,9 @@ fun RecipeDetailScreen(
 
     val checkedIngredients = remember { mutableStateMapOf<Int, Boolean>() }
 
-    // ── Stan timera dla tego przepisu ────────────────────────────────────────
     val allTimers by TimerService.timers.collectAsState()
     val timerState = allTimers[recipeId]
-
-    // Dialog ustawiania czasu
     var showTimerDialog by remember { mutableStateOf(false) }
-    // Dialog alarmu (gdy timer skończy)
     val showAlarmDialog = timerState is TimerState.Finished
 
     Scaffold(
@@ -68,8 +65,6 @@ fun RecipeDetailScreen(
                 },
                 actions = {
                     recipe?.let { r ->
-                        // ── Timer – ikona w TopBar ───────────────────────────
-                        // Pokazuje odliczanie obok ikony gdy aktywny
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AnimatedVisibility(
                                 visible = timerState is TimerState.Running,
@@ -87,9 +82,7 @@ fun RecipeDetailScreen(
                             IconButton(onClick = { showTimerDialog = true }) {
                                 Icon(
                                     imageVector = if (timerState is TimerState.Running)
-                                        Icons.Filled.Timer      // podświetlona gdy aktywny
-                                    else
-                                        Icons.Outlined.Timer,   // zarys gdy nieaktywny
+                                        Icons.Filled.Timer else Icons.Outlined.Timer,
                                     contentDescription = "Timer",
                                     tint = if (timerState is TimerState.Running)
                                         MaterialTheme.colorScheme.primary
@@ -163,15 +156,14 @@ fun RecipeDetailScreen(
                             contentScale       = ContentScale.Crop,
                             modifier           = Modifier
                                 .fillMaxSize()
-                                .clickable {
-                                    // Przekazujemy URI klikniętego zdjęcia + całą listę
-                                    onPhotoClick(photos[page].uri, allPhotoUris)
-                                }
+                                .clickable { onPhotoClick(photos[page].uri, allPhotoUris) }
                         )
                     }
                     if (photos.size > 1) {
                         Row(
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             photos.indices.forEach { index ->
@@ -192,12 +184,29 @@ fun RecipeDetailScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (recipe!!.description.isNotBlank()) {
+                // ── Tagi ─────────────────────────────────────────────────────
+                val tags = recipe!!.tags.mapNotNull { name ->
+                    runCatching { RecipeTag.valueOf(name) }.getOrNull()
+                }
+                if (tags.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        tags.forEach { tag ->
+                            SuggestionChip(
+                                onClick = {},
+                                label   = { Text(tag.label, style = MaterialTheme.typography.labelSmall) }
+                            )
+                        }
+                    }
+                }
+
+                // ── Opis ─────────────────────────────────────────────────────
+                if (recipe.description.isNotBlank()) {
                     SectionCard("Opis") {
                         Text(recipe.description, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
+                // ── Składniki ─────────────────────────────────────────────────
                 val ingredients = recipeWithDetails!!.ingredients
                 if (ingredients.isNotEmpty()) {
                     SectionCard("Ingredients") {
@@ -214,8 +223,10 @@ fun RecipeDetailScreen(
                                 Text(
                                     text     = ingredient.name,
                                     style    = MaterialTheme.typography.bodyMedium,
-                                    color    = if (isChecked) MaterialTheme.colorScheme.onSurfaceVariant
-                                    else MaterialTheme.colorScheme.onSurface,
+                                    color    = if (isChecked)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)
                                 )
                                 if (ingredient.amount.isNotBlank()) {
@@ -239,6 +250,7 @@ fun RecipeDetailScreen(
                     }
                 }
 
+                // ── Sposób wykonania ──────────────────────────────────────────
                 if (recipe.executionDescription.isNotBlank()) {
                     SectionCard("Execution description") {
                         Text(recipe.executionDescription, style = MaterialTheme.typography.bodyMedium)
@@ -250,28 +262,22 @@ fun RecipeDetailScreen(
         }
     }
 
-    // ── Dialog ustawiania timera ─────────────────────────────────────────────
     if (showTimerDialog) {
         TimerSetDialog(
-            currentTimer  = timerState as? TimerState.Running,
-            recipeTitle   = recipe?.title ?: "",
-            onStart       = { minutes, seconds ->
-                val totalSec = minutes * 60 + seconds
-                TimerService.startTimer(context, recipeId, recipe?.title ?: "", totalSec)
+            currentTimer = timerState as? TimerState.Running,
+            recipeTitle  = recipe?.title ?: "",
+            onStart      = { minutes, seconds ->
+                TimerService.startTimer(context, recipeId, recipe?.title ?: "", minutes * 60 + seconds)
                 showTimerDialog = false
             },
-            onStop        = {
-                TimerService.stopTimer(context, recipeId)
-                showTimerDialog = false
-            },
-            onDismiss     = { showTimerDialog = false }
+            onStop    = { TimerService.stopTimer(context, recipeId); showTimerDialog = false },
+            onDismiss = { showTimerDialog = false }
         )
     }
 
-    // ── Dialog alarmu ────────────────────────────────────────────────────────
     if (showAlarmDialog) {
         AlertDialog(
-            onDismissRequest = {},   // wymuszamy kliknięcie przycisku
+            onDismissRequest = {},
             title = { Text("⏰ Timer finished!") },
             text  = { Text("${recipe?.title} is ready!") },
             confirmButton = {
@@ -283,8 +289,6 @@ fun RecipeDetailScreen(
     }
 }
 
-// ── Dialog ustawiania czasu ──────────────────────────────────────────────────
-
 @Composable
 private fun TimerSetDialog(
     currentTimer: TimerState.Running?,
@@ -293,8 +297,12 @@ private fun TimerSetDialog(
     onStop: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var minutes by remember { mutableStateOf(if (currentTimer != null) (currentTimer.remainingSec / 60).toString() else "5") }
-    var seconds by remember { mutableStateOf(if (currentTimer != null) (currentTimer.remainingSec % 60).toString() else "0") }
+    var minutes by remember {
+        mutableStateOf(if (currentTimer != null) (currentTimer.remainingSec / 60).toString() else "5")
+    }
+    var seconds by remember {
+        mutableStateOf(if (currentTimer != null) (currentTimer.remainingSec % 60).toString() else "0")
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -315,21 +323,21 @@ private fun TimerSetDialog(
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value         = minutes,
-                        onValueChange = { if (it.length <= 2) minutes = it.filter { c -> c.isDigit() } },
-                        label         = { Text("min") },
+                        value           = minutes,
+                        onValueChange   = { if (it.length <= 2) minutes = it.filter { c -> c.isDigit() } },
+                        label           = { Text("min") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier      = Modifier.width(80.dp),
-                        singleLine    = true
+                        modifier        = Modifier.width(80.dp),
+                        singleLine      = true
                     )
                     Text(":", style = MaterialTheme.typography.headlineMedium)
                     OutlinedTextField(
-                        value         = seconds,
-                        onValueChange = { if (it.length <= 2) seconds = it.filter { c -> c.isDigit() } },
-                        label         = { Text("sec") },
+                        value           = seconds,
+                        onValueChange   = { if (it.length <= 2) seconds = it.filter { c -> c.isDigit() } },
+                        label           = { Text("sec") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier      = Modifier.width(80.dp),
-                        singleLine    = true
+                        modifier        = Modifier.width(80.dp),
+                        singleLine      = true
                     )
                 }
             }
@@ -374,7 +382,8 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text(title, style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(8.dp))
             content()
         }

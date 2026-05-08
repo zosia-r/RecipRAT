@@ -11,8 +11,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,9 +28,6 @@ import androidx.navigation.navArgument
 import com.example.recipapp.Recipapp
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Favourites : Screen("favourites", "Favourites", Icons.Filled.Favorite)
@@ -45,24 +41,8 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
         fun createRoute(id: Long) = "edit/$id"
         const val routeWithArgs = "edit/{recipeId}"
     }
-    object PhotoViewer : Screen("photo/{index}/{uris}", "Photo", Icons.Filled.Favorite) {
-        /**
-         * Kodujemy listę URI jako jeden string rozdzielony "|||",
-         * następnie całość URL-encodujemy żeby znaki specjalne nie psuły trasy.
-         */
-        fun createRoute(initialIndex: Int, uris: List<String>): String {
-            val joined  = uris.joinToString("|||")
-            val encoded = URLEncoder.encode(joined, StandardCharsets.UTF_8.toString())
-            return "photo/$initialIndex/$encoded"
-        }
-        const val routeWithArgs = "photo/{index}/{uris}"
-    }
+    object PhotoViewer : Screen("photo", "Photo", Icons.Filled.Favorite)
 }
-
-// Ekrany które NIE mają bottom bara
-private val routesWithoutNavBar = setOf(
-    Screen.PhotoViewer.route.substringBefore("{")  // "photo/"
-)
 
 @Composable
 fun MainScreen() {
@@ -76,8 +56,7 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
-    // Ukryj navbar dla PhotoViewer
-    val showNavBar = !currentRoute.startsWith("photo/")
+    val showNavBar = currentRoute != Screen.PhotoViewer.route
 
     val pink   = Color(0xFFE91E63)
     val pinkBg = Color(0xFFFCE4EC)
@@ -104,7 +83,8 @@ fun MainScreen() {
                         selected = favSelected,
                         onClick  = { navigateToTab(Screen.Favourites.route) },
                         colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor = pink, unselectedIconColor = Color.Gray, indicatorColor = pinkBg
+                            selectedIconColor = pink, unselectedIconColor = Color.Gray,
+                            indicatorColor = pinkBg
                         )
                     )
 
@@ -125,7 +105,8 @@ fun MainScreen() {
                         selected = newSelected,
                         onClick  = { navigateToTab(Screen.New.route) },
                         colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.Transparent, unselectedIconColor = Color.Transparent,
+                            selectedIconColor = Color.Transparent,
+                            unselectedIconColor = Color.Transparent,
                             indicatorColor = Color.Transparent
                         )
                     )
@@ -138,7 +119,8 @@ fun MainScreen() {
                         selected = searchSelected,
                         onClick  = { navigateToTab(Screen.Search.route) },
                         colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor = pink, unselectedIconColor = Color.Gray, indicatorColor = pinkBg
+                            selectedIconColor = pink, unselectedIconColor = Color.Gray,
+                            indicatorColor = pinkBg
                         )
                     )
                 }
@@ -180,7 +162,9 @@ fun MainScreen() {
                     onNavigateToEdit = { recipeId -> navController.navigate(Screen.Edit.createRoute(recipeId)) },
                     onPhotoClick     = { initialUri, allUris ->
                         val index = allUris.indexOf(initialUri).coerceAtLeast(0)
-                        navController.navigate(Screen.PhotoViewer.createRoute(index, allUris))
+                        // Zapisujemy do ViewModelu PRZED nawigacją – synchronicznie
+                        recipeViewModel.setPhotoViewerData(allUris, index)
+                        navController.navigate(Screen.PhotoViewer.route)
                     }
                 )
             }
@@ -195,20 +179,12 @@ fun MainScreen() {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(
-                route     = Screen.PhotoViewer.routeWithArgs,
-                arguments = listOf(
-                    navArgument("index") { type = NavType.IntType },
-                    navArgument("uris")  { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val index   = backStackEntry.arguments?.getInt("index") ?: 0
-                val encoded = backStackEntry.arguments?.getString("uris") ?: return@composable
-                val decoded = URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString())
-                val uris    = decoded.split("|||")
+            composable(Screen.PhotoViewer.route) {
+                val allUris  by recipeViewModel.pendingPhotoUris.collectAsState()
+                val index    by recipeViewModel.pendingPhotoIndex.collectAsState()
                 PhotoViewerScreen(
-                    initialUri     = uris.getOrElse(index) { uris.first() },
-                    allUris        = uris,
+                    initialIndex   = index,
+                    allUris        = allUris,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

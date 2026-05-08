@@ -18,22 +18,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 
-/**
- * Pełnoekranowy podgląd zdjęć.
- * - Pager pokazuje wszystkie zdjęcia przepisu, startuje od klikniętego
- * - Pinch-to-zoom na każdym zdjęciu
- * - Navbar jest ukryty (MainScreen nie renderuje go dla tej trasy)
- */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PhotoViewerScreen(
-    initialUri: String,
+    initialIndex: Int,
     allUris: List<String>,
     onNavigateBack: () -> Unit
 ) {
-    val startIndex = allUris.indexOf(initialUri).coerceAtLeast(0)
+    if (allUris.isEmpty()) {
+        onNavigateBack()
+        return
+    }
+
     val pagerState = rememberPagerState(
-        initialPage = startIndex,
+        initialPage = initialIndex.coerceIn(0, allUris.lastIndex),
         pageCount   = { allUris.size }
     )
 
@@ -41,7 +39,6 @@ fun PhotoViewerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            // Zajmij cały ekran włącznie z obszarem systemowym (status bar, nav bar)
             .windowInsetsPadding(WindowInsets(0))
     ) {
         HorizontalPager(
@@ -51,7 +48,6 @@ fun PhotoViewerScreen(
             ZoomableImage(uri = allUris[page])
         }
 
-        // Przycisk powrotu
         IconButton(
             onClick  = onNavigateBack,
             modifier = Modifier
@@ -62,7 +58,6 @@ fun PhotoViewerScreen(
             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
         }
 
-        // Licznik zdjęć
         if (allUris.size > 1) {
             Text(
                 text     = "${pagerState.currentPage + 1} / ${allUris.size}",
@@ -83,7 +78,6 @@ private fun ZoomableImage(uri: String) {
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
 
-    // Resetuj zoom gdy zmienia się URI (użytkownik przeskoczył na inne zdjęcie)
     LaunchedEffect(uri) {
         scale   = 1f
         offsetX = 0f
@@ -97,12 +91,9 @@ private fun ZoomableImage(uri: String) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     scale = (scale * zoom).coerceIn(1f, 5f)
                     if (scale <= 1f) {
-                        scale   = 1f
-                        offsetX = 0f
-                        offsetY = 0f
+                        scale = 1f; offsetX = 0f; offsetY = 0f
                     } else {
-                        offsetX += pan.x
-                        offsetY += pan.y
+                        offsetX += pan.x; offsetY += pan.y
                     }
                 }
             },
