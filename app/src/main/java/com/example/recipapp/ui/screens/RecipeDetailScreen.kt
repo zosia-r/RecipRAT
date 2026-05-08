@@ -13,9 +13,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.Timer
@@ -51,7 +53,9 @@ fun RecipeDetailScreen(
 
     val allTimers by TimerService.timers.collectAsState()
     val timerState = allTimers[recipeId]
-    var showTimerDialog by remember { mutableStateOf(false) }
+    var showTimerDialog  by remember { mutableStateOf(false) }
+    var showMenu         by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val showAlarmDialog = timerState is TimerState.Finished
 
     Scaffold(
@@ -65,6 +69,8 @@ fun RecipeDetailScreen(
                 },
                 actions = {
                     recipe?.let { r ->
+
+                        // ── Timer z odliczaniem ──────────────────────────────
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AnimatedVisibility(
                                 visible = timerState is TimerState.Running,
@@ -92,25 +98,7 @@ fun RecipeDetailScreen(
                             }
                         }
 
-                        IconButton(onClick = {
-                            val text = buildShareText(
-                                title       = r.title,
-                                description = r.description,
-                                ingredients = recipeWithDetails!!.ingredients.map { it.name },
-                                steps       = r.executionDescription
-                            )
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, text)
-                                putExtra(Intent.EXTRA_SUBJECT, r.title)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share recipe"))
-                        }) { Icon(Icons.Default.Share, contentDescription = "Share") }
-
-                        IconButton(onClick = { onNavigateToEdit(r.id) }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit")
-                        }
-
+                        // ── Serduszko ────────────────────────────────────────
                         IconButton(onClick = { viewModel.toggleFavourite(r.id, r.isFavourite) }) {
                             Icon(
                                 imageVector = if (r.isFavourite)
@@ -121,6 +109,53 @@ fun RecipeDetailScreen(
                                 else
                                     MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+
+                        // ── Menu 3 kropki ────────────────────────────────────
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded        = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text         = { Text("Edit") },
+                                    leadingIcon  = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                    onClick      = { showMenu = false; onNavigateToEdit(r.id) }
+                                )
+                                DropdownMenuItem(
+                                    text        = { Text("Share") },
+                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                    onClick     = {
+                                        showMenu = false
+                                        val text = buildShareText(
+                                            title       = r.title,
+                                            description = r.description,
+                                            ingredients = recipeWithDetails!!.ingredients.map { it.name },
+                                            steps       = r.executionDescription
+                                        )
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, text)
+                                            putExtra(Intent.EXTRA_SUBJECT, r.title)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Share recipe"))
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text        = {
+                                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error)
+                                    },
+                                    onClick     = { showMenu = false; showDeleteDialog = true }
+                                )
+                            }
                         }
                     }
                 }
@@ -262,6 +297,7 @@ fun RecipeDetailScreen(
         }
     }
 
+    // ── Dialog timera ────────────────────────────────────────────────────────
     if (showTimerDialog) {
         TimerSetDialog(
             currentTimer = timerState as? TimerState.Running,
@@ -275,6 +311,7 @@ fun RecipeDetailScreen(
         )
     }
 
+    // ── Dialog alarmu ────────────────────────────────────────────────────────
     if (showAlarmDialog) {
         AlertDialog(
             onDismissRequest = {},
@@ -284,6 +321,30 @@ fun RecipeDetailScreen(
                 Button(onClick = { TimerService.dismissAlarm(context, recipeId) }) {
                     Text("OK, got it!")
                 }
+            }
+        )
+    }
+
+    // ── Dialog potwierdzenia usunięcia ───────────────────────────────────────
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete recipe") },
+            text  = { Text("Are you sure you want to delete \"${recipe?.title}\"?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteRecipe(recipe!!)
+                        onNavigateBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
     }
