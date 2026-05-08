@@ -19,19 +19,16 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 
 /**
- * Pełnoekranowy podgląd zdjęć z możliwością:
- * - przewijania między zdjęciami (HorizontalPager)
- * - powiększania/pomniejszania gestem szczypania (pinch-to-zoom)
- *
- * @param initialUri  ścieżka do zdjęcia które kliknięto – od niego zaczyna pager
- * @param allUris     lista wszystkich zdjęć przepisu – do przewijania między nimi
- *                    (jeśli pusta, wyświetla tylko initialUri)
+ * Pełnoekranowy podgląd zdjęć.
+ * - Pager pokazuje wszystkie zdjęcia przepisu, startuje od klikniętego
+ * - Pinch-to-zoom na każdym zdjęciu
+ * - Navbar jest ukryty (MainScreen nie renderuje go dla tej trasy)
  */
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PhotoViewerScreen(
     initialUri: String,
-    allUris: List<String> = listOf(initialUri),
+    allUris: List<String>,
     onNavigateBack: () -> Unit
 ) {
     val startIndex = allUris.indexOf(initialUri).coerceAtLeast(0)
@@ -44,8 +41,9 @@ fun PhotoViewerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            // Zajmij cały ekran włącznie z obszarem systemowym (status bar, nav bar)
+            .windowInsetsPadding(WindowInsets(0))
     ) {
-        // ── Pager ze zdjęciami ───────────────────────────────────────────────
         HorizontalPager(
             state    = pagerState,
             modifier = Modifier.fillMaxSize()
@@ -53,21 +51,18 @@ fun PhotoViewerScreen(
             ZoomableImage(uri = allUris[page])
         }
 
-        // ── Przycisk wstecz ──────────────────────────────────────────────────
+        // Przycisk powrotu
         IconButton(
             onClick  = onNavigateBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 48.dp, start = 8.dp)
+                .statusBarsPadding()
+                .padding(start = 8.dp)
         ) {
-            Icon(
-                imageVector        = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint               = Color.White
-            )
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
         }
 
-        // ── Licznik zdjęć (np. "2 / 5") ─────────────────────────────────────
+        // Licznik zdjęć
         if (allUris.size > 1) {
             Text(
                 text     = "${pagerState.currentPage + 1} / ${allUris.size}",
@@ -75,18 +70,25 @@ fun PhotoViewerScreen(
                 style    = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 56.dp, end = 16.dp)
+                    .statusBarsPadding()
+                    .padding(end = 16.dp)
             )
         }
     }
 }
 
-/** Pojedyncze zdjęcie z obsługą pinch-to-zoom i przesuwania */
 @Composable
 private fun ZoomableImage(uri: String) {
-    var scale       by remember { mutableFloatStateOf(1f) }
-    var offsetX     by remember { mutableFloatStateOf(0f) }
-    var offsetY     by remember { mutableFloatStateOf(0f) }
+    var scale   by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
+    // Resetuj zoom gdy zmienia się URI (użytkownik przeskoczył na inne zdjęcie)
+    LaunchedEffect(uri) {
+        scale   = 1f
+        offsetX = 0f
+        offsetY = 0f
+    }
 
     Box(
         modifier = Modifier
@@ -94,8 +96,8 @@ private fun ZoomableImage(uri: String) {
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     scale = (scale * zoom).coerceIn(1f, 5f)
-                    // gdy nie powiększone – zresetuj pozycję
-                    if (scale == 1f) {
+                    if (scale <= 1f) {
+                        scale   = 1f
                         offsetX = 0f
                         offsetY = 0f
                     } else {
@@ -113,10 +115,10 @@ private fun ZoomableImage(uri: String) {
             modifier           = Modifier
                 .fillMaxSize()
                 .graphicsLayer(
-                    scaleX         = scale,
-                    scaleY         = scale,
-                    translationX   = offsetX,
-                    translationY   = offsetY
+                    scaleX       = scale,
+                    scaleY       = scale,
+                    translationX = offsetX,
+                    translationY = offsetY
                 )
         )
     }

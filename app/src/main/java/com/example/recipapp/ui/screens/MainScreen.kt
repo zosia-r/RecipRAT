@@ -45,15 +45,24 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
         fun createRoute(id: Long) = "edit/$id"
         const val routeWithArgs = "edit/{recipeId}"
     }
-    object PhotoViewer : Screen("photo/{uri}", "Photo", Icons.Filled.Favorite) {
-        // URI musi być zakodowane bo zawiera znaki specjalne (/, :, .)
-        fun createRoute(uri: String): String {
-            val encoded = URLEncoder.encode(uri, StandardCharsets.UTF_8.toString())
-            return "photo/$encoded"
+    object PhotoViewer : Screen("photo/{index}/{uris}", "Photo", Icons.Filled.Favorite) {
+        /**
+         * Kodujemy listę URI jako jeden string rozdzielony "|||",
+         * następnie całość URL-encodujemy żeby znaki specjalne nie psuły trasy.
+         */
+        fun createRoute(initialIndex: Int, uris: List<String>): String {
+            val joined  = uris.joinToString("|||")
+            val encoded = URLEncoder.encode(joined, StandardCharsets.UTF_8.toString())
+            return "photo/$initialIndex/$encoded"
         }
-        const val routeWithArgs = "photo/{uri}"
+        const val routeWithArgs = "photo/{index}/{uris}"
     }
 }
+
+// Ekrany które NIE mają bottom bara
+private val routesWithoutNavBar = setOf(
+    Screen.PhotoViewer.route.substringBefore("{")  // "photo/"
+)
 
 @Composable
 fun MainScreen() {
@@ -65,17 +74,17 @@ fun MainScreen() {
     )
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
+
+    // Ukryj navbar dla PhotoViewer
+    val showNavBar = !currentRoute.startsWith("photo/")
 
     val pink   = Color(0xFFE91E63)
     val pinkBg = Color(0xFFFCE4EC)
 
-    // Tylko dla przycisków bottom bara – używa popUpTo + saveState
     fun navigateToTab(route: String) {
         navController.navigate(route) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState    = true
         }
@@ -83,67 +92,56 @@ fun MainScreen() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                contentColor   = pink
-            ) {
-                val favSelected = currentDestination?.hierarchy
-                    ?.any { it.route == Screen.Favourites.route } == true
-                NavigationBarItem(
-                    icon     = { Icon(Screen.Favourites.icon, contentDescription = null) },
-                    label    = { Text(Screen.Favourites.label) },
-                    selected = favSelected,
-                    onClick  = { navigateToTab(Screen.Favourites.route) },
-                    colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor   = pink,
-                        unselectedIconColor = Color.Gray,
-                        indicatorColor      = pinkBg
-                    )
-                )
+            if (showNavBar) {
+                val currentDestination = navBackStackEntry?.destination
+                NavigationBar(containerColor = Color.White, contentColor = pink) {
 
-                val newSelected = currentDestination?.hierarchy
-                    ?.any { it.route == Screen.New.route } == true
-                NavigationBarItem(
-                    icon = {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(52.dp)
-                                .shadow(6.dp, CircleShape)
-                                .clip(CircleShape)
-                                .background(pink)
-                        ) {
-                            Icon(
-                                imageVector        = Screen.New.icon,
-                                contentDescription = null,
-                                tint               = Color.White,
-                                modifier           = Modifier.size(28.dp)
-                            )
-                        }
-                    },
-                    label    = { Text(Screen.New.label, color = if (newSelected) pink else Color.Gray) },
-                    selected = newSelected,
-                    onClick  = { navigateToTab(Screen.New.route) },
-                    colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor   = Color.Transparent,
-                        unselectedIconColor = Color.Transparent,
-                        indicatorColor      = Color.Transparent
+                    val favSelected = currentDestination?.hierarchy
+                        ?.any { it.route == Screen.Favourites.route } == true
+                    NavigationBarItem(
+                        icon     = { Icon(Screen.Favourites.icon, contentDescription = null) },
+                        label    = { Text(Screen.Favourites.label) },
+                        selected = favSelected,
+                        onClick  = { navigateToTab(Screen.Favourites.route) },
+                        colors   = NavigationBarItemDefaults.colors(
+                            selectedIconColor = pink, unselectedIconColor = Color.Gray, indicatorColor = pinkBg
+                        )
                     )
-                )
 
-                val searchSelected = currentDestination?.hierarchy
-                    ?.any { it.route == Screen.Search.route } == true
-                NavigationBarItem(
-                    icon     = { Icon(Screen.Search.icon, contentDescription = null) },
-                    label    = { Text(Screen.Search.label) },
-                    selected = searchSelected,
-                    onClick  = { navigateToTab(Screen.Search.route) },
-                    colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor   = pink,
-                        unselectedIconColor = Color.Gray,
-                        indicatorColor      = pinkBg
+                    val newSelected = currentDestination?.hierarchy
+                        ?.any { it.route == Screen.New.route } == true
+                    NavigationBarItem(
+                        icon = {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(52.dp).shadow(6.dp, CircleShape)
+                                    .clip(CircleShape).background(pink)
+                            ) {
+                                Icon(Screen.New.icon, contentDescription = null,
+                                    tint = Color.White, modifier = Modifier.size(28.dp))
+                            }
+                        },
+                        label    = { Text(Screen.New.label, color = if (newSelected) pink else Color.Gray) },
+                        selected = newSelected,
+                        onClick  = { navigateToTab(Screen.New.route) },
+                        colors   = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.Transparent, unselectedIconColor = Color.Transparent,
+                            indicatorColor = Color.Transparent
+                        )
                     )
-                )
+
+                    val searchSelected = currentDestination?.hierarchy
+                        ?.any { it.route == Screen.Search.route } == true
+                    NavigationBarItem(
+                        icon     = { Icon(Screen.Search.icon, contentDescription = null) },
+                        label    = { Text(Screen.Search.label) },
+                        selected = searchSelected,
+                        onClick  = { navigateToTab(Screen.Search.route) },
+                        colors   = NavigationBarItemDefaults.colors(
+                            selectedIconColor = pink, unselectedIconColor = Color.Gray, indicatorColor = pinkBg
+                        )
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -180,7 +178,10 @@ fun MainScreen() {
                     viewModel        = recipeViewModel,
                     onNavigateBack   = { navController.popBackStack() },
                     onNavigateToEdit = { recipeId -> navController.navigate(Screen.Edit.createRoute(recipeId)) },
-                    onPhotoClick     = { uri -> navController.navigate(Screen.PhotoViewer.createRoute(uri)) }
+                    onPhotoClick     = { initialUri, allUris ->
+                        val index = allUris.indexOf(initialUri).coerceAtLeast(0)
+                        navController.navigate(Screen.PhotoViewer.createRoute(index, allUris))
+                    }
                 )
             }
             composable(
@@ -196,12 +197,18 @@ fun MainScreen() {
             }
             composable(
                 route     = Screen.PhotoViewer.routeWithArgs,
-                arguments = listOf(navArgument("uri") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("index") { type = NavType.IntType },
+                    navArgument("uris")  { type = NavType.StringType }
+                )
             ) { backStackEntry ->
-                val encoded = backStackEntry.arguments?.getString("uri") ?: return@composable
-                val uri = URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString())
+                val index   = backStackEntry.arguments?.getInt("index") ?: 0
+                val encoded = backStackEntry.arguments?.getString("uris") ?: return@composable
+                val decoded = URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString())
+                val uris    = decoded.split("|||")
                 PhotoViewerScreen(
-                    initialUri     = uri,
+                    initialUri     = uris.getOrElse(index) { uris.first() },
+                    allUris        = uris,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
