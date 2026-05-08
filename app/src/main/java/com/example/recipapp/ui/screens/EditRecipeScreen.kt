@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,7 +27,6 @@ fun EditRecipeScreen(
 ) {
     val recipeWithDetails by viewModel.getRecipeById(recipeId).collectAsState(initial = null)
 
-    // Poczekaj aż dane się załadują zanim wypełnimy formularz
     if (recipeWithDetails == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -36,28 +36,30 @@ fun EditRecipeScreen(
 
     val recipe = recipeWithDetails!!.recipe
 
-    // Formularz wypełniony istniejącymi danymi
     var title by remember { mutableStateOf(recipe.title) }
     var description by remember { mutableStateOf(recipe.description) }
     var executionDescription by remember { mutableStateOf(recipe.executionDescription) }
     var ingredients by remember {
-        mutableStateOf(
-            recipeWithDetails!!.ingredients.map { it.name }.ifEmpty { listOf("") }
-        )
+        mutableStateOf(recipeWithDetails!!.ingredients.map { it.name }.ifEmpty { listOf("") })
     }
-
-    // Istniejące zdjęcia (ścieżki z bazy) – użytkownik może je usuwać
     var existingPhotoPaths by remember {
         mutableStateOf(recipeWithDetails!!.photos.map { it.uri })
     }
-
-    // Nowe zdjęcia dodane podczas edycji (Uri z galerii)
     var newPhotoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    // Wypełnij tagi z bazy – zamieniamy nazwy enumów z powrotem na obiekty RecipeTag
+    var selectedTags by remember {
+        mutableStateOf(
+            recipe.tags.mapNotNull { name ->
+                runCatching { RecipeTag.valueOf(name) }.getOrNull()
+            }
+        )
+    }
 
     var titleError by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        ActivityResultContracts.GetMultipleContents()
     ) { uris -> newPhotoUris = newPhotoUris + uris }
 
     Scaffold(
@@ -81,7 +83,6 @@ fun EditRecipeScreen(
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // ── Tytuł ────────────────────────────────────────────────────────
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it; titleError = false },
@@ -92,13 +93,24 @@ fun EditRecipeScreen(
                 singleLine = true
             )
 
-            // ── Opis ─────────────────────────────────────────────────────────
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
+            )
+
+            // ── Tagi ─────────────────────────────────────────────────────────
+            Text("Tags", style = MaterialTheme.typography.titleSmall)
+            TagSelector(
+                selectedTags = selectedTags,
+                onTagToggle  = { tag ->
+                    selectedTags = if (tag in selectedTags)
+                        selectedTags - tag
+                    else
+                        selectedTags + tag
+                }
             )
 
             // ── Składniki ────────────────────────────────────────────────────
@@ -127,7 +139,7 @@ fun EditRecipeScreen(
                 }
             }
             TextButton(
-                onClick = { ingredients = ingredients + "" },
+                onClick  = { ingredients = ingredients + "" },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -135,7 +147,6 @@ fun EditRecipeScreen(
                 Text("Add ingredient")
             }
 
-            // ── Opis wykonania ───────────────────────────────────────────────
             OutlinedTextField(
                 value = executionDescription,
                 onValueChange = { executionDescription = it },
@@ -148,24 +159,18 @@ fun EditRecipeScreen(
             val totalPhotos = existingPhotoPaths.size + newPhotoUris.size
             Text("Photos ($totalPhotos)", style = MaterialTheme.typography.titleSmall)
 
-            // Istniejące zdjęcia
             if (existingPhotoPaths.isNotEmpty()) {
-                Text(
-                    "Current photos:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Current photos:", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 existingPhotoPaths.forEach { path ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = path.substringAfterLast("/"), // pokaż tylko nazwę pliku
+                        Text(path.substringAfterLast("/"),
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
+                            modifier = Modifier.weight(1f))
                         IconButton(onClick = { existingPhotoPaths = existingPhotoPaths - path }) {
                             Icon(Icons.Default.Close, contentDescription = "Remove photo")
                         }
@@ -173,24 +178,18 @@ fun EditRecipeScreen(
                 }
             }
 
-            // Nowe zdjęcia
             if (newPhotoUris.isNotEmpty()) {
-                Text(
-                    "New photos:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("New photos:", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 newPhotoUris.forEach { uri ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = uri.lastPathSegment ?: uri.toString(),
+                        Text(uri.lastPathSegment ?: uri.toString(),
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
+                            modifier = Modifier.weight(1f))
                         IconButton(onClick = { newPhotoUris = newPhotoUris - uri }) {
                             Icon(Icons.Default.Close, contentDescription = "Remove photo")
                         }
@@ -199,7 +198,7 @@ fun EditRecipeScreen(
             }
 
             OutlinedButton(
-                onClick = { photoPickerLauncher.launch("image/*") },
+                onClick  = { photoPickerLauncher.launch("image/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -207,33 +206,26 @@ fun EditRecipeScreen(
                 Text("Add photos")
             }
 
-            // ── Zapisz ───────────────────────────────────────────────────────
             Button(
                 onClick = {
-                    if (title.isBlank()) {
-                        titleError = true
-                        return@Button
-                    }
-                    // Zdjęcia usunięte przez użytkownika = te które były w bazie, a już ich nie ma
+                    if (title.isBlank()) { titleError = true; return@Button }
                     val removedPaths = recipeWithDetails!!.photos
                         .map { it.uri }
                         .filter { it !in existingPhotoPaths }
-
                     viewModel.updateRecipe(
-                        recipe = recipe.copy(
-                            title = title.trim(),
-                            description = description.trim(),
+                        recipe               = recipe.copy(
+                            title                = title.trim(),
+                            description          = description.trim(),
                             executionDescription = executionDescription.trim()
                         ),
-                        ingredients = ingredients,
-                        newPhotoUris = newPhotoUris,
-                        removedPhotoPaths = removedPaths
+                        ingredients          = ingredients,
+                        newPhotoUris         = newPhotoUris,
+                        removedPhotoPaths    = removedPaths,
+                        tags                 = selectedTags
                     )
                     onNavigateBack()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             ) {
                 Text("Save changes")
             }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,11 +29,11 @@ fun NewRecipeScreen(
     var executionDescription by remember { mutableStateOf("") }
     var ingredients by remember { mutableStateOf(listOf("")) }
     var photoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-
+    var selectedTags by remember { mutableStateOf<List<RecipeTag>>(emptyList()) }
     var titleError by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        ActivityResultContracts.GetMultipleContents()
     ) { uris -> photoUris = photoUris + uris }
 
     Scaffold(
@@ -41,7 +42,7 @@ fun NewRecipeScreen(
                 title = { Text("New Recipe") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Wróć")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -56,13 +57,9 @@ fun NewRecipeScreen(
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // Tytuł
             OutlinedTextField(
                 value = title,
-                onValueChange = {
-                    title = it
-                    titleError = false
-                },
+                onValueChange = { title = it; titleError = false },
                 label = { Text("Title *") },
                 isError = titleError,
                 supportingText = { if (titleError) Text("Title is required") },
@@ -70,7 +67,6 @@ fun NewRecipeScreen(
                 singleLine = true
             )
 
-            // Opis
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -79,8 +75,20 @@ fun NewRecipeScreen(
                 minLines = 2
             )
 
-            // Składniki
-            Text("Ingrediets", style = MaterialTheme.typography.titleSmall)
+            // ── Tagi ─────────────────────────────────────────────────────────
+            Text("Tags", style = MaterialTheme.typography.titleSmall)
+            TagSelector(
+                selectedTags = selectedTags,
+                onTagToggle  = { tag ->
+                    selectedTags = if (tag in selectedTags)
+                        selectedTags - tag
+                    else
+                        selectedTags + tag
+                }
+            )
+
+            // ── Składniki ────────────────────────────────────────────────────
+            Text("Ingredients", style = MaterialTheme.typography.titleSmall)
             ingredients.forEachIndexed { index, ingredient ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -89,8 +97,7 @@ fun NewRecipeScreen(
                     OutlinedTextField(
                         value = ingredient,
                         onValueChange = { newVal ->
-                            ingredients = ingredients.toMutableList()
-                                .also { it[index] = newVal }
+                            ingredients = ingredients.toMutableList().also { it[index] = newVal }
                         },
                         label = { Text("Ingredient ${index + 1}") },
                         modifier = Modifier.weight(1f),
@@ -98,16 +105,15 @@ fun NewRecipeScreen(
                     )
                     if (ingredients.size > 1) {
                         IconButton(onClick = {
-                            ingredients = ingredients.toMutableList()
-                                .also { it.removeAt(index) }
+                            ingredients = ingredients.toMutableList().also { it.removeAt(index) }
                         }) {
-                            Icon(Icons.Default.Close, contentDescription = "Usuń")
+                            Icon(Icons.Default.Close, contentDescription = "Remove")
                         }
                     }
                 }
             }
             TextButton(
-                onClick = { ingredients = ingredients + "" },
+                onClick  = { ingredients = ingredients + "" },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -115,7 +121,6 @@ fun NewRecipeScreen(
                 Text("Add ingredient")
             }
 
-            // Opis wykonania
             OutlinedTextField(
                 value = executionDescription,
                 onValueChange = { executionDescription = it },
@@ -124,56 +129,47 @@ fun NewRecipeScreen(
                 minLines = 4
             )
 
-            // Zdjęcia
+            // ── Zdjęcia ──────────────────────────────────────────────────────
             Text("Photos (${photoUris.size})", style = MaterialTheme.typography.titleSmall)
             OutlinedButton(
-                onClick = { photoPickerLauncher.launch("image/*") },
+                onClick  = { photoPickerLauncher.launch("image/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Add photos")
             }
-            if (photoUris.isNotEmpty()) {
-                photoUris.forEach { uri ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = uri.lastPathSegment ?: uri.toString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = {
-                            photoUris = photoUris - uri
-                        }) {
-                            Icon(Icons.Default.Close, contentDescription = "Usuń zdjęcie")
-                        }
+            photoUris.forEach { uri ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text     = uri.lastPathSegment ?: uri.toString(),
+                        style    = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { photoUris = photoUris - uri }) {
+                        Icon(Icons.Default.Close, contentDescription = "Remove photo")
                     }
                 }
             }
 
-            // Zapisz
             Button(
                 onClick = {
-                    if (title.isBlank()) {
-                        titleError = true
-                        return@Button
-                    }
+                    if (title.isBlank()) { titleError = true; return@Button }
                     viewModel.addRecipe(
-                        title = title.trim(),
-                        description = description.trim(),
+                        title                = title.trim(),
+                        description          = description.trim(),
                         executionDescription = executionDescription.trim(),
-                        ingredients = ingredients,
-                        photoUris = photoUris                         // ← przekaż Uri bezpośrednio
+                        ingredients          = ingredients,
+                        photoUris            = photoUris,
+                        tags                 = selectedTags
                     )
                     onNavigateBack()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             ) {
                 Text("Save Recipe")
             }

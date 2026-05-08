@@ -15,7 +15,11 @@ class RecipeRepository(private val dao: RecipeDao) {
 
     fun getRecipeById(id: Long): Flow<RecipeWithDetails?> = dao.getRecipeById(id)
 
-    fun searchRecipes(query: String): Flow<List<RecipeWithDetails>> = dao.searchRecipes(query)
+    fun searchRecipes(query: String): Flow<List<RecipeWithDetails>> =
+        dao.searchRecipes(query)
+
+    fun searchRecipesWithTag(query: String, tag: String): Flow<List<RecipeWithDetails>> =
+        dao.searchRecipesWithTag(query, tag)
 
     @Transaction
     suspend fun insertFullRecipe(
@@ -36,18 +40,10 @@ class RecipeRepository(private val dao: RecipeDao) {
         removedPhotoPaths: List<String>
     ) {
         dao.updateRecipe(recipe)
-
-        // Składniki – usuń stare, wstaw nowe
         dao.deleteIngredientsByRecipe(recipe.id)
         dao.insertIngredients(ingredients.map { it.copy(recipeId = recipe.id) })
-
-        // Zdjęcia – usuń tylko te skasowane przez użytkownika, dodaj nowe
-        if (removedPhotoPaths.isNotEmpty()) {
-            dao.deletePhotosByPaths(removedPhotoPaths)
-        }
-        if (newPhotos.isNotEmpty()) {
-            dao.insertPhotos(newPhotos.map { it.copy(recipeId = recipe.id) })
-        }
+        if (removedPhotoPaths.isNotEmpty()) dao.deletePhotosByPaths(removedPhotoPaths)
+        if (newPhotos.isNotEmpty()) dao.insertPhotos(newPhotos.map { it.copy(recipeId = recipe.id) })
     }
 
     suspend fun deleteRecipe(recipe: RecipeEntity) = dao.deleteRecipe(recipe)

@@ -36,8 +36,30 @@ interface RecipeDao {
     fun getRecipeById(id: Long): Flow<RecipeWithDetails?>
 
     @Transaction
-    @Query("SELECT * FROM recipes WHERE title LIKE '%' || :query || '%'")
+    @Query("SELECT * FROM recipes WHERE title LIKE '%' || :query || '%' ORDER BY title ASC")
     fun searchRecipes(query: String): Flow<List<RecipeWithDetails>>
+
+    /**
+     * Filtrowanie po tagu – sprawdzamy czy kolumna tags zawiera nazwę tagu.
+     * Tagi są zapisane jako "TAG1|||TAG2|||TAG3", więc szukamy po nazwie enuma.
+     */
+    @Transaction
+    @Query("SELECT * FROM recipes WHERE tags LIKE '%' || :tag || '%' ORDER BY title ASC")
+    fun getRecipesByTag(tag: String): Flow<List<RecipeWithDetails>>
+
+    /**
+     * Wyszukiwanie z opcjonalnym tagiem.
+     * Gdy tag jest pusty – szuka tylko po tytule.
+     * Gdy tag niepusty – szuka po tytule I tagu jednocześnie.
+     */
+    @Transaction
+    @Query("""
+        SELECT * FROM recipes 
+        WHERE title LIKE '%' || :query || '%'
+        AND (:tag = '' OR tags LIKE '%' || :tag || '%')
+        ORDER BY title ASC
+    """)
+    fun searchRecipesWithTag(query: String, tag: String): Flow<List<RecipeWithDetails>>
 
     // UPDATE
 
@@ -58,7 +80,6 @@ interface RecipeDao {
     @Query("DELETE FROM photos WHERE recipeId = :recipeId")
     suspend fun deletePhotosByRecipe(recipeId: Long)
 
-    /** Usuwa konkretne zdjęcia po ścieżce – używane przy edycji przepisu */
     @Query("DELETE FROM photos WHERE uri IN (:paths)")
     suspend fun deletePhotosByPaths(paths: List<String>)
 }
