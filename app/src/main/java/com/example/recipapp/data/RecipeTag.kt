@@ -1,12 +1,9 @@
 package com.example.recipapp.data
 
-/**
- * Predefiniowane tagi przepisów pogrupowane w kategorie.
- * Każdy tag ma etykietę wyświetlaną w UI.
- */
+// Predefined tags for recipes
 enum class RecipeTag(val label: String, val category: TagCategory) {
 
-    // Rodzaj posiłku
+    // Meal type
     BREAKFAST("🍳 Breakfast",   TagCategory.MEAL_TYPE),
     LUNCH("🥗 Lunch",           TagCategory.MEAL_TYPE),
     DINNER("🍽️ Dinner",        TagCategory.MEAL_TYPE),
@@ -14,18 +11,18 @@ enum class RecipeTag(val label: String, val category: TagCategory) {
     DESSERT("🍰 Dessert",       TagCategory.MEAL_TYPE),
     DRINK("🥤 Drink",           TagCategory.MEAL_TYPE),
 
-    // Smak
+    // Taste
     SWEET("🍬 Sweet",           TagCategory.TASTE),
     SAVORY("🧂 Savory",         TagCategory.TASTE),
     SPICY("🌶️ Spicy",          TagCategory.TASTE),
     SOUR("🍋 Sour",             TagCategory.TASTE),
 
-    // Czas przygotowania
+    // Prep time
     QUICK("⚡ Under 15 min",    TagCategory.PREP_TIME),
     MEDIUM("🕐 15–45 min",      TagCategory.PREP_TIME),
     LONG("⏳ Over 45 min",      TagCategory.PREP_TIME),
 
-    // Dieta
+    // Diet
     VEGETARIAN("🥦 Vegetarian", TagCategory.DIET),
     VEGAN("🌱 Vegan",           TagCategory.DIET),
     GLUTEN_FREE("🌾 Gluten-free", TagCategory.DIET),
