@@ -1,6 +1,7 @@
 package com.example.recipapp.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -12,6 +13,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.relation.RecipeWithDetails
+import com.example.recipapp.ui.theme.CherryRose
+import com.example.recipapp.ui.theme.DeepTeal
+import com.example.recipapp.ui.theme.DustyRose
+import com.example.recipapp.ui.theme.DustyRoseLight
 
 @Composable
 fun RecipeCard(
@@ -29,54 +34,90 @@ fun RecipeCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp,
+            pressedElevation  = 6.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(start = 20.dp, end = 8.dp, top = 16.dp, bottom = 16.dp)) {
+
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = recipe.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
+                    text  = recipe.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 4.dp)
                 )
-                IconButton(onClick = onToggleFavourite) {
+                IconButton(
+                    onClick  = onToggleFavourite,
+                    modifier = Modifier.size(40.dp)
+                ) {
                     Icon(
                         imageVector = if (recipe.isFavourite)
                             Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favourites",
-                        tint = if (recipe.isFavourite)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        contentDescription = if (recipe.isFavourite) "Remove from favourites" else "Add to favourites",
+                        tint = if (recipe.isFavourite) CherryRose
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
 
             if (recipe.description.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    text = recipe.description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text     = recipe.description,
+                    style    = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             if (tags.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement   = Arrangement.spacedBy(4.dp)
+                ) {
                     tags.forEach { tag ->
-                        SuggestionChip(
-                            onClick = {},
-                            label   = { Text(tag.label, style = MaterialTheme.typography.labelSmall) }
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = DustyRoseLight,
+                            modifier = Modifier.height(26.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(horizontal = 10.dp)
+                            ) {
+                                Text(
+                                    text  = tag.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = DustyRose
+                                )
+                            }
+                        }
                     }
                 }
             }
+
+            // Dekoracyjna linia akcentująca
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(
+                modifier  = Modifier.padding(end = 12.dp),
+                thickness = 1.dp,
+                color     = MaterialTheme.colorScheme.outlineVariant
+            )
         }
     }
 }

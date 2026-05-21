@@ -6,18 +6,15 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -26,6 +23,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.example.recipapp.R
+import com.example.recipapp.ui.theme.MintCream
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -37,18 +35,14 @@ fun SplashScreen(onTimeout: () -> Unit) {
         ExoPlayer.Builder(context).build().apply {
             val uri = "android.resource://${context.packageName}/${R.raw.intro_video}"
             setMediaItem(MediaItem.fromUri(uri))
-            repeatMode = Player.REPEAT_MODE_OFF
+            repeatMode    = Player.REPEAT_MODE_OFF
             playWhenReady = true
             prepare()
         }
     }
 
-    // Animacja napisu
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
+    LaunchedEffect(Unit) { isVisible = true }
 
-    // Przejście po zakończeniu filmu
     LaunchedEffect(exoPlayer) {
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -57,42 +51,51 @@ fun SplashScreen(onTimeout: () -> Unit) {
         })
     }
 
-    // Zwolnienie zasobów przy wyjściu z ekranu
     DisposableEffect(Unit) {
         onDispose { exoPlayer.release() }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 1. warstwa filmowa – pełny ekran bez pasków
+        // ── Warstwa filmowa ───────────────────────────────────────────────────
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = {
                 PlayerView(context).apply {
-                    player = exoPlayer
+                    player       = exoPlayer
                     useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // wypełnia cały ekran
+                    resizeMode   = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 }
             }
         )
 
-        // 2. warstwa tekstowa
+        // ── Warstwa tekstowa — Playfair Display przez theme ───────────────────
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier            = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(animationSpec = tween(durationMillis = 2500))
+                enter   = fadeIn(animationSpec = tween(durationMillis = 2500))
             ) {
-                Text(
-                    text = "RecipApp",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text      = "RecipApp",
+                        style     = MaterialTheme.typography.displayLarge,
+                        color     = MintCream
+                    )
+                    Text(
+                        text      = "your personal recipe book",
+                        style     = MaterialTheme.typography.titleMedium,
+                        color     = MintCream.copy(alpha = 0.80f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

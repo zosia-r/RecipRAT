@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.recipapp.ui.screens.MainScreen
 import com.example.recipapp.ui.screens.SplashScreen
+import com.example.recipapp.ui.theme.RecipAppTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -28,18 +29,20 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val navController = rememberNavController()
+            RecipAppTheme {
+                val navController = rememberNavController()
 
-            NavHost(navController = navController, startDestination = "splash") {
-                composable("splash") {
-                    SplashScreen(onTimeout = {
-                        navController.navigate("main") {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    })
-                }
-                composable("main") {
-                    MainScreen()
+                NavHost(navController = navController, startDestination = "splash") {
+                    composable("splash") {
+                        SplashScreen(onTimeout = {
+                            navController.navigate("main") {
+                                popUpTo("splash") { inclusive = true }
+                            }
+                        })
+                    }
+                    composable("main") {
+                        MainScreen()
+                    }
                 }
             }
         }

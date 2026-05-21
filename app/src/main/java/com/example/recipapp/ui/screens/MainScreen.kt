@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,6 +25,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.recipapp.Recipapp
+import com.example.recipapp.ui.theme.CherryRose
+import com.example.recipapp.ui.theme.CherryRoseLight
+import com.example.recipapp.ui.theme.DeepTeal
+import com.example.recipapp.ui.theme.DeepTealLight
+import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
 
@@ -58,9 +62,6 @@ fun MainScreen() {
 
     val showNavBar = currentRoute != Screen.PhotoViewer.route
 
-    val pink   = Color(0xFFE91E63)
-    val pinkBg = Color(0xFFFCE4EC)
-
     fun navigateToTab(route: String) {
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -73,54 +74,95 @@ fun MainScreen() {
         bottomBar = {
             if (showNavBar) {
                 val currentDestination = navBackStackEntry?.destination
-                NavigationBar(containerColor = Color.White, contentColor = pink) {
 
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    // ── Ulubione ──────────────────────────────────────────────
                     val favSelected = currentDestination?.hierarchy
                         ?.any { it.route == Screen.Favourites.route } == true
+
                     NavigationBarItem(
-                        icon     = { Icon(Screen.Favourites.icon, contentDescription = null) },
-                        label    = { Text(Screen.Favourites.label) },
+                        icon = {
+                            Icon(
+                                Screen.Favourites.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        label    = { Text(Screen.Favourites.label, style = MaterialTheme.typography.labelSmall) },
                         selected = favSelected,
                         onClick  = { navigateToTab(Screen.Favourites.route) },
                         colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor = pink, unselectedIconColor = Color.Gray,
-                            indicatorColor = pinkBg
+                            selectedIconColor   = CherryRose,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedTextColor   = CherryRose,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            indicatorColor      = CherryRoseLight
                         )
                     )
 
+                    // ── Nowy przepis — wyróżniony FAB ─────────────────────────
                     val newSelected = currentDestination?.hierarchy
                         ?.any { it.route == Screen.New.route } == true
+
                     NavigationBarItem(
                         icon = {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(52.dp).shadow(6.dp, CircleShape)
-                                    .clip(CircleShape).background(pink)
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .shadow(8.dp, CircleShape)
+                                    .clip(CircleShape)
+                                    .background(DeepTeal)
                             ) {
-                                Icon(Screen.New.icon, contentDescription = null,
-                                    tint = Color.White, modifier = Modifier.size(28.dp))
+                                Icon(
+                                    Screen.New.icon,
+                                    contentDescription = null,
+                                    tint     = MintCream,
+                                    modifier = Modifier.size(26.dp)
+                                )
                             }
                         },
-                        label    = { Text(Screen.New.label, color = if (newSelected) pink else Color.Gray) },
+                        label    = {
+                            Text(
+                                Screen.New.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (newSelected) DeepTeal
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
                         selected = newSelected,
                         onClick  = { navigateToTab(Screen.New.route) },
                         colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.Transparent,
-                            unselectedIconColor = Color.Transparent,
-                            indicatorColor = Color.Transparent
+                            selectedIconColor   = androidx.compose.ui.graphics.Color.Transparent,
+                            unselectedIconColor = androidx.compose.ui.graphics.Color.Transparent,
+                            indicatorColor      = androidx.compose.ui.graphics.Color.Transparent
                         )
                     )
 
+                    // ── Szukaj ───────────────────────────────────────────────
                     val searchSelected = currentDestination?.hierarchy
                         ?.any { it.route == Screen.Search.route } == true
+
                     NavigationBarItem(
-                        icon     = { Icon(Screen.Search.icon, contentDescription = null) },
-                        label    = { Text(Screen.Search.label) },
+                        icon = {
+                            Icon(
+                                Screen.Search.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        label    = { Text(Screen.Search.label, style = MaterialTheme.typography.labelSmall) },
                         selected = searchSelected,
                         onClick  = { navigateToTab(Screen.Search.route) },
                         colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor = pink, unselectedIconColor = Color.Gray,
-                            indicatorColor = pinkBg
+                            selectedIconColor   = DeepTeal,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedTextColor   = DeepTeal,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            indicatorColor      = DeepTealLight
                         )
                     )
                 }
@@ -162,7 +204,6 @@ fun MainScreen() {
                     onNavigateToEdit = { recipeId -> navController.navigate(Screen.Edit.createRoute(recipeId)) },
                     onPhotoClick     = { initialUri, allUris ->
                         val index = allUris.indexOf(initialUri).coerceAtLeast(0)
-                        // Zapisujemy do ViewModelu PRZED nawigacją – synchronicznie
                         recipeViewModel.setPhotoViewerData(allUris, index)
                         navController.navigate(Screen.PhotoViewer.route)
                     }
@@ -180,8 +221,8 @@ fun MainScreen() {
                 )
             }
             composable(Screen.PhotoViewer.route) {
-                val allUris  by recipeViewModel.pendingPhotoUris.collectAsState()
-                val index    by recipeViewModel.pendingPhotoIndex.collectAsState()
+                val allUris by recipeViewModel.pendingPhotoUris.collectAsState()
+                val index   by recipeViewModel.pendingPhotoIndex.collectAsState()
                 PhotoViewerScreen(
                     initialIndex   = index,
                     allUris        = allUris,

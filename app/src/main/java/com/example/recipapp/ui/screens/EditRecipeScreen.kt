@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -16,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
+import com.example.recipapp.ui.theme.CoffeeBean
+import com.example.recipapp.ui.theme.DeepTeal
+import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,17 +33,17 @@ fun EditRecipeScreen(
 
     if (recipeWithDetails == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = DeepTeal)
         }
         return
     }
 
     val recipe = recipeWithDetails!!.recipe
 
-    var title by remember { mutableStateOf(recipe.title) }
-    var description by remember { mutableStateOf(recipe.description) }
+    var title                by remember { mutableStateOf(recipe.title) }
+    var description          by remember { mutableStateOf(recipe.description) }
     var executionDescription by remember { mutableStateOf(recipe.executionDescription) }
-    var ingredients by remember {
+    var ingredients          by remember {
         mutableStateOf(recipeWithDetails!!.ingredients.map { it.name }.ifEmpty { listOf("") })
     }
     var existingPhotoPaths by remember {
@@ -47,7 +51,6 @@ fun EditRecipeScreen(
     }
     var newPhotoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    // Wypełnij tagi z bazy – zamieniamy nazwy enumów z powrotem na obiekty RecipeTag
     var selectedTags by remember {
         mutableStateOf(
             recipe.tags.mapNotNull { name ->
@@ -65,14 +68,25 @@ fun EditRecipeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Recipe") },
+                title = {
+                    Text(
+                        "Edit Recipe",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor    = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -81,59 +95,70 @@ fun EditRecipeScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
+            // ── Tytuł ─────────────────────────────────────────────────────────
             OutlinedTextField(
-                value = title,
+                value         = title,
                 onValueChange = { title = it; titleError = false },
-                label = { Text("Title *") },
-                isError = titleError,
+                label         = { Text("Title *") },
+                isError       = titleError,
                 supportingText = { if (titleError) Text("Title is required") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                modifier      = Modifier.fillMaxWidth(),
+                singleLine    = true,
+                textStyle     = MaterialTheme.typography.titleLarge,
+                shape         = RoundedCornerShape(16.dp),
+                colors        = recipeTextFieldColors()
             )
 
+            // ── Opis ─────────────────────────────────────────────────────────
             OutlinedTextField(
-                value = description,
+                value         = description,
                 onValueChange = { description = it },
-                label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
+                label         = { Text("Description") },
+                modifier      = Modifier.fillMaxWidth(),
+                minLines      = 2,
+                shape         = RoundedCornerShape(16.dp),
+                colors        = recipeTextFieldColors()
             )
 
             // ── Tagi ─────────────────────────────────────────────────────────
-            Text("Tags", style = MaterialTheme.typography.titleSmall)
+            SectionHeader(title = "Tags")
             TagSelector(
                 selectedTags = selectedTags,
                 onTagToggle  = { tag ->
                     selectedTags = if (tag in selectedTags)
-                        selectedTags - tag
-                    else
-                        selectedTags + tag
+                        selectedTags - tag else selectedTags + tag
                 }
             )
 
             // ── Składniki ────────────────────────────────────────────────────
-            Text("Ingredients", style = MaterialTheme.typography.titleSmall)
+            SectionHeader(title = "Ingredients")
             ingredients.forEachIndexed { index, ingredient ->
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        value = ingredient,
+                        value         = ingredient,
                         onValueChange = { newVal ->
                             ingredients = ingredients.toMutableList().also { it[index] = newVal }
                         },
-                        label = { Text("Ingredient ${index + 1}") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                        label      = { Text("Ingredient ${index + 1}") },
+                        modifier   = Modifier.weight(1f),
+                        singleLine = true,
+                        shape      = RoundedCornerShape(14.dp),
+                        colors     = recipeTextFieldColors()
                     )
                     if (ingredients.size > 1) {
                         IconButton(onClick = {
                             ingredients = ingredients.toMutableList().also { it.removeAt(index) }
                         }) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove")
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -142,70 +167,72 @@ fun EditRecipeScreen(
                 onClick  = { ingredients = ingredients + "" },
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = null, tint = DeepTeal)
                 Spacer(Modifier.width(4.dp))
-                Text("Add ingredient")
+                Text("Add ingredient", color = DeepTeal, style = MaterialTheme.typography.labelLarge)
             }
 
+            // ── Wykonanie ────────────────────────────────────────────────────
+            SectionHeader(title = "How to make it")
             OutlinedTextField(
-                value = executionDescription,
+                value         = executionDescription,
                 onValueChange = { executionDescription = it },
-                label = { Text("Execution description") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 4
+                label         = { Text("Step by step instructions") },
+                modifier      = Modifier.fillMaxWidth(),
+                minLines      = 5,
+                shape         = RoundedCornerShape(16.dp),
+                colors        = recipeTextFieldColors()
             )
 
             // ── Zdjęcia ──────────────────────────────────────────────────────
             val totalPhotos = existingPhotoPaths.size + newPhotoUris.size
-            Text("Photos ($totalPhotos)", style = MaterialTheme.typography.titleSmall)
+            SectionHeader(title = "Photos ($totalPhotos)")
 
             if (existingPhotoPaths.isNotEmpty()) {
-                Text("Current photos:", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Current photos",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 existingPhotoPaths.forEach { path ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(path.substringAfterLast("/"),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f))
-                        IconButton(onClick = { existingPhotoPaths = existingPhotoPaths - path }) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove photo")
-                        }
-                    }
+                    PhotoRow(
+                        label    = path.substringAfterLast("/"),
+                        onRemove = { existingPhotoPaths = existingPhotoPaths - path }
+                    )
                 }
             }
 
             if (newPhotoUris.isNotEmpty()) {
-                Text("New photos:", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "New photos",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 newPhotoUris.forEach { uri ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(uri.lastPathSegment ?: uri.toString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f))
-                        IconButton(onClick = { newPhotoUris = newPhotoUris - uri }) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove photo")
-                        }
-                    }
+                    PhotoRow(
+                        label    = uri.lastPathSegment ?: uri.toString(),
+                        onRemove = { newPhotoUris = newPhotoUris - uri }
+                    )
                 }
             }
 
             OutlinedButton(
                 onClick  = { photoPickerLauncher.launch("image/*") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape    = RoundedCornerShape(14.dp),
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
+                border   = ButtonDefaults.outlinedButtonBorder.copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(DeepTeal)
+                )
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Add photos")
+                Text("Add photos", style = MaterialTheme.typography.labelLarge)
             }
 
+            Spacer(Modifier.height(4.dp))
+
+            // ── Zapisz ───────────────────────────────────────────────────────
             Button(
                 onClick = {
                     if (title.isBlank()) { titleError = true; return@Button }
@@ -213,22 +240,31 @@ fun EditRecipeScreen(
                         .map { it.uri }
                         .filter { it !in existingPhotoPaths }
                     viewModel.updateRecipe(
-                        recipe               = recipe.copy(
+                        recipe = recipe.copy(
                             title                = title.trim(),
                             description          = description.trim(),
                             executionDescription = executionDescription.trim()
                         ),
-                        ingredients          = ingredients,
-                        newPhotoUris         = newPhotoUris,
-                        removedPhotoPaths    = removedPaths,
-                        tags                 = selectedTags
+                        ingredients       = ingredients,
+                        newPhotoUris      = newPhotoUris,
+                        removedPhotoPaths = removedPaths,
+                        tags              = selectedTags
                     )
                     onNavigateBack()
                 },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape  = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DeepTeal,
+                    contentColor   = MintCream
+                )
             ) {
-                Text("Save changes")
+                Text("Save changes", style = MaterialTheme.typography.labelLarge)
             }
+
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

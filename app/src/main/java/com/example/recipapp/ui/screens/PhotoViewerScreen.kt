@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.recipapp.ui.theme.MintCream
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -48,6 +50,7 @@ fun PhotoViewerScreen(
             ZoomableImage(uri = allUris[page])
         }
 
+        // ── Przycisk wstecz ───────────────────────────────────────────────
         IconButton(
             onClick  = onNavigateBack,
             modifier = Modifier
@@ -55,19 +58,26 @@ fun PhotoViewerScreen(
                 .statusBarsPadding()
                 .padding(start = 8.dp)
         ) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MintCream)
         }
 
+        // ── Licznik stron ─────────────────────────────────────────────────
         if (allUris.size > 1) {
-            Text(
-                text     = "${pagerState.currentPage + 1} / ${allUris.size}",
-                color    = Color.White,
-                style    = MaterialTheme.typography.bodyMedium,
+            Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
-                    .padding(end = 16.dp)
-            )
+                    .padding(end = 12.dp),
+                shape = RoundedCornerShape(50),
+                color = Color.Black.copy(alpha = 0.45f)
+            ) {
+                Text(
+                    text     = "${pagerState.currentPage + 1} / ${allUris.size}",
+                    color    = MintCream,
+                    style    = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
