@@ -85,15 +85,9 @@ fun SplashScreen(onTimeout: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text      = "RecipApp",
+                        text      = "RecipRAT",
                         style     = MaterialTheme.typography.displayLarge,
                         color     = MintCream
-                    )
-                    Text(
-                        text      = "your personal recipe book",
-                        style     = MaterialTheme.typography.titleMedium,
-                        color     = MintCream.copy(alpha = 0.80f),
-                        textAlign = TextAlign.Center
                     )
                 }
             }
