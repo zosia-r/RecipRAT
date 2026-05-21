@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.TagCategory
+import com.example.recipapp.ui.theme.CherryRose
 import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.DeepTealLight
 import com.example.recipapp.ui.theme.DustyRose
@@ -42,10 +44,21 @@ fun SearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Search",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint     = DeepTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "Search",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor    = MaterialTheme.colorScheme.background,

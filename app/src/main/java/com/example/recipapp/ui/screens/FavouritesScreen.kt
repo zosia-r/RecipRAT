@@ -40,7 +40,7 @@ fun FavouritesScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            "My Favourites",
+                            "Favourites",
                             style = MaterialTheme.typography.headlineSmall
                         )
                     }
