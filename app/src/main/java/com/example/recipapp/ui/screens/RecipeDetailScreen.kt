@@ -259,7 +259,7 @@ fun RecipeDetailScreen(
                                     Text(
                                         text  = tag.label,
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = DustyRose
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
