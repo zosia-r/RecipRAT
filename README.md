@@ -1,8 +1,7 @@
-# RecipRAT
+# RecipRAT 🩶🐀
 
 A Ratatouille-inspired Android cooking app.
 
----
 
 ## Tech stack
 
