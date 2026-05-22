@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,6 +58,28 @@ fun NewRecipeScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (title.isBlank()) { titleError = true; return@IconButton }
+                            viewModel.addRecipe(
+                                title                = title.trim(),
+                                description          = description.trim(),
+                                executionDescription = executionDescription.trim(),
+                                ingredients          = ingredients,
+                                photoUris            = photoUris,
+                                tags                 = selectedTags
+                            )
+                            onNavigateBack()
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Save",
+                            tint = DeepTeal
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor    = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -75,7 +98,6 @@ fun NewRecipeScreen(
         ) {
             Spacer(Modifier.height(4.dp))
 
-            // ── Tytuł ─────────────────────────────────────────────────────────
             OutlinedTextField(
                 value       = title,
                 onValueChange = { title = it; titleError = false },
@@ -89,7 +111,6 @@ fun NewRecipeScreen(
                 colors      = recipeTextFieldColors()
             )
 
-            // ── Opis ─────────────────────────────────────────────────────────
             OutlinedTextField(
                 value         = description,
                 onValueChange = { description = it },
@@ -100,7 +121,6 @@ fun NewRecipeScreen(
                 colors        = recipeTextFieldColors()
             )
 
-            // ── Tagi ─────────────────────────────────────────────────────────
             SectionHeader(title = "Tags")
             TagSelector(
                 selectedTags = selectedTags,
@@ -110,7 +130,6 @@ fun NewRecipeScreen(
                 }
             )
 
-            // ── Składniki ────────────────────────────────────────────────────
             SectionHeader(title = "Ingredients")
             ingredients.forEachIndexed { index, ingredient ->
                 Row(
@@ -150,7 +169,6 @@ fun NewRecipeScreen(
                 Text("Add ingredient", color = DeepTeal, style = MaterialTheme.typography.labelLarge)
             }
 
-            // ── Wykonanie ────────────────────────────────────────────────────
             SectionHeader(title = "How to make it")
             OutlinedTextField(
                 value         = executionDescription,
@@ -162,7 +180,6 @@ fun NewRecipeScreen(
                 colors        = recipeTextFieldColors()
             )
 
-            // ── Zdjęcia ──────────────────────────────────────────────────────
             SectionHeader(title = "Photos (${photoUris.size})")
             OutlinedButton(
                 onClick  = { photoPickerLauncher.launch("image/*") },
@@ -180,14 +197,13 @@ fun NewRecipeScreen(
 
             photoUris.forEach { uri ->
                 PhotoRow(
-                    label   = uri.lastPathSegment ?: uri.toString(),
+                    label    = uri.lastPathSegment ?: uri.toString(),
                     onRemove = { photoUris = photoUris - uri }
                 )
             }
 
             Spacer(Modifier.height(4.dp))
 
-            // ── Zapisz ───────────────────────────────────────────────────────
             Button(
                 onClick = {
                     if (title.isBlank()) { titleError = true; return@Button }
@@ -203,8 +219,7 @@ fun NewRecipeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .padding(bottom = 0.dp),
+                    .height(52.dp),
                 shape  = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DeepTeal,
@@ -261,10 +276,10 @@ fun PhotoRow(label: String, onRemove: () -> Unit) {
 
 @Composable
 fun recipeTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor   = DeepTeal,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-    focusedLabelColor    = DeepTeal,
-    cursorColor          = DeepTeal,
+    focusedBorderColor      = DeepTeal,
+    unfocusedBorderColor    = MaterialTheme.colorScheme.outline,
+    focusedLabelColor       = DeepTeal,
+    cursorColor             = DeepTeal,
     focusedContainerColor   = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor = MaterialTheme.colorScheme.surface
 )

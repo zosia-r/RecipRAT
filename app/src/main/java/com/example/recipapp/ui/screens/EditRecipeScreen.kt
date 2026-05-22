@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -77,6 +78,34 @@ fun EditRecipeScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (title.isBlank()) { titleError = true; return@IconButton }
+                            val removedPaths = recipeWithDetails!!.photos
+                                .map { it.uri }
+                                .filter { it !in existingPhotoPaths }
+                            viewModel.updateRecipe(
+                                recipe = recipe.copy(
+                                    title                = title.trim(),
+                                    description          = description.trim(),
+                                    executionDescription = executionDescription.trim()
+                                ),
+                                ingredients       = ingredients,
+                                newPhotoUris      = newPhotoUris,
+                                removedPhotoPaths = removedPaths,
+                                tags              = selectedTags
+                            )
+                            onNavigateBack()
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Save",
+                            tint = DeepTeal
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
