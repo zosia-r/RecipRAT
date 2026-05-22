@@ -197,7 +197,7 @@ class TimerService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_TIMER)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("RecipApp Timer")
+            .setContentTitle("RecipRAT Timer")
             .setContentText(text)
             .setOngoing(true)
             .setSilent(true)

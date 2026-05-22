@@ -1,7 +1,10 @@
 package com.example.recipapp.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -15,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.recipapp.ui.theme.MintCream
+import kotlin.math.abs
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -98,13 +103,41 @@ private fun ZoomableImage(uri: String) {
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(1f, 5f)
-                    if (scale <= 1f) {
-                        scale = 1f; offsetX = 0f; offsetY = 0f
-                    } else {
-                        offsetX += pan.x; offsetY += pan.y
-                    }
+                awaitEachGesture {
+                    // Czekaj na pierwsze dotknięcie
+                    val down = awaitFirstDown(requireUnconsumed = false)
+
+                    var zoom        = 1f
+                    var panX        = 0f
+                    var panY        = 0f
+                    var pastSlop    = false
+
+                    do {
+                        val event = awaitPointerEvent()
+                        val zoomChange = event.calculateZoom()
+                        val panChange  = event.calculatePan()
+
+                        zoom = zoomChange
+                        panX = panChange.x
+                        panY = panChange.y
+
+                        val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+
+                        // Jeśli zoom > 1 już jest aktywny, konsumuj gesty
+                        if (scale > 1f || zoomChange != 1f) {
+                            scale = newScale
+                            if (scale <= 1f) {
+                                scale = 1f; offsetX = 0f; offsetY = 0f
+                            } else {
+                                offsetX += panChange.x
+                                offsetY += panChange.y
+                            }
+                            // Konsumuj tylko gdy zoomujemy — pager nie dostanie tych zdarzeń
+                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        }
+                        // Gdy scale == 1f i ruch jest poziomy — NIE konsumujemy,
+                        // żeby HorizontalPager mógł obsłużyć swipe
+                    } while (event.changes.any { it.pressed })
                 }
             },
         contentAlignment = Alignment.Center
