@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -20,9 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.TagCategory
-import com.example.recipapp.ui.theme.CherryRose
 import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DeepTealLight
 import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
@@ -238,7 +235,9 @@ fun SearchScreen(
                             .padding(vertical = 8.dp),
                         shape  = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                        border = ButtonDefaults.outlinedButtonBorder(
+                            enabled = true
+                        ).copy(
                             brush = androidx.compose.ui.graphics.SolidColor(DeepTeal)
                         )
                     ) {

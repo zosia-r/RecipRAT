@@ -14,8 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.relation.RecipeWithDetails
 import com.example.recipapp.ui.theme.CherryRose
-import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 
 @Composable

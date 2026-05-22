@@ -10,7 +10,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,7 +23,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.recipapp.ui.theme.MintCream
-import kotlin.math.abs
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -63,7 +62,7 @@ fun PhotoViewerScreen(
                 .statusBarsPadding()
                 .padding(start = 8.dp)
         ) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MintCream)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MintCream)
         }
 
         // ── Licznik stron ─────────────────────────────────────────────────

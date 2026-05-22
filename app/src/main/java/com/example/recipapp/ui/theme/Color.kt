@@ -19,4 +19,3 @@ val CoffeeBeanSoft   = Color(0xFF4A2C2E)   // CoffeeBean rozjaśniony
 // ── Neutralne ─────────────────────────────────────────────────────
 val NeutralSurface   = Color(0xFFFDF6F0)   // ciepły off-white
 val NeutralOutline   = Color(0xFFD9CECE)
-val OnDarkText       = Color(0xFFF7FFF7)   // MintCream — tekst na ciemnym tle

@@ -11,7 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -21,9 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
-import com.example.recipapp.ui.theme.CoffeeBean
 import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DeepTealLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 
