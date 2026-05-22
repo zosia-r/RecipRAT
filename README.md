@@ -1,10 +1,24 @@
-# RecipApp
+# RecipRAT
 
-## TODO:
-- wygląd
-- animacja tytułu na splashscreen
-- animacja rozwijania szczegółów przepisu
-- szczegóły przepisu:
-  - photoviewer: powinien być pełnoekranowy i powinna być w nim możliwość swipeowania
-  - gdy przechodze favourites -> recipeDetail -> search -> favourites włącza mi recipeDetail
-  - powielanie wielkości porcji -> wymaga zmiany sposobu przechowywania i wpisywania składników
+A Ratatouille-inspired Android cooking app.
+
+---
+
+## Tech stack
+
+- Kotlin
+- Android SDK
+- Gradle
+- Jetpack libraries
+
+## Features
+
+- Browse and search recipes by name or tag
+- Save favorites
+- View recipe details
+- Add, edit, and manage personal recipes
+- Share/export recipes
+- Set cooking timers for each recipe
+
+
+
