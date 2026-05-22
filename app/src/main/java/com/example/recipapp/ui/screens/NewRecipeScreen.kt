@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -55,13 +56,14 @@ fun NewRecipeScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = {
-                            if (title.isBlank()) { titleError = true; return@IconButton }
+                            if (title.isBlank()) {
+                                return@IconButton }
                             viewModel.addRecipe(
                                 title                = title.trim(),
                                 description          = description.trim(),
@@ -186,7 +188,9 @@ fun NewRecipeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
-                border   = ButtonDefaults.outlinedButtonBorder.copy(
+                border = ButtonDefaults.outlinedButtonBorder(
+                    enabled = true
+                ).copy(
                     brush = androidx.compose.ui.graphics.SolidColor(DeepTeal)
                 )
             ) {
