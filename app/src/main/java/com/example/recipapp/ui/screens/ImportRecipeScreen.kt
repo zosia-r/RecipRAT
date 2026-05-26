@@ -48,7 +48,7 @@ fun ImportRecipeScreen(
         description          = result.description
         executionDescription = result.steps
         ingredients          = result.ingredients.ifEmpty { listOf("") }
-        selectedTags         = emptyList()
+        selectedTags         = result.tags
         parseError           = false
         parsed               = true
     }

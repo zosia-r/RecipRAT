@@ -1,39 +1,43 @@
 package com.example.recipapp.data.sharing
 
+import com.example.recipapp.data.RecipeTag
 
-// ── Format tekstu przepisu (eksport / import) ─────────────────────────────────
-//
 // Format:
 //   🍴 <tytuł>
 //   <pusty wiersz>
 //   <opis>                       (opcjonalny)
 //   <pusty wiersz>
+//   Tags: TAG1, TAG2             (opcjonalne)
+//   <pusty wiersz>
 //   Ingredients:
 //   • składnik 1
-//   • składnik 2
 //   <pusty wiersz>
 //   Preparation:
 //   <kroki>
-//
-// ─────────────────────────────────────────────────────────────────────────────
 
 data class ParsedRecipe(
     val title: String,
     val description: String,
     val ingredients: List<String>,
-    val steps: String
+    val steps: String,
+    val tags: List<RecipeTag>        // ← nowe pole
 )
 
 fun buildShareText(
     title: String,
     description: String,
     ingredients: List<String>,
-    steps: String
+    steps: String,
+    tags: List<String> = emptyList()  // ← nowy parametr
 ): String = buildString {
     appendLine("🍴 $title")
     if (description.isNotBlank()) {
         appendLine()
         appendLine(description)
+    }
+    if (tags.isNotEmpty()) {               // ← nowa sekcja Tags
+        appendLine()
+        appendLine("Tags: ${tags.joinToString(", ") { it }}")
     }
     if (ingredients.isNotEmpty()) {
         appendLine()
@@ -47,36 +51,41 @@ fun buildShareText(
     }
 }
 
-/**
- * Parsuje tekst w formacie [buildShareText] i zwraca [ParsedRecipe],
- * lub null jeśli tekst nie zawiera wymaganego tytułu (wiersz zaczynający się od 🍴).
- */
 fun parseRecipeText(text: String): ParsedRecipe? {
     val lines = text.lines()
 
-    // Tytuł — pierwszy niepusty wiersz zaczynający się od 🍴
     val titleLine = lines.firstOrNull { it.trimStart().startsWith("🍴") }
         ?: return null
     val title = titleLine.trimStart().removePrefix("🍴").trim()
     if (title.isBlank()) return null
 
-    // Indeksy sekcji
+    val titleIdx       = lines.indexOf(titleLine)
+    val tagsIdx        = lines.indexOfFirst { it.trim().startsWith("Tags:") }
     val ingredientsIdx = lines.indexOfFirst { it.trim() == "Ingredients:" }
     val preparationIdx = lines.indexOfFirst { it.trim() == "Preparation:" }
-    val titleIdx       = lines.indexOf(titleLine)
 
-    // Opis — wiersze między tytułem a sekcją Ingredients (lub Preparation, lub końcem)
-    val descEnd = when {
-        ingredientsIdx > titleIdx -> ingredientsIdx
-        preparationIdx > titleIdx -> preparationIdx
-        else                      -> lines.size
-    }
+    // Opis — wiersze między tytułem a pierwszą sekcją (Tags / Ingredients / Preparation)
+    val firstSectionIdx = listOf(tagsIdx, ingredientsIdx, preparationIdx)
+        .filter { it > titleIdx }
+        .minOrNull() ?: lines.size
+
     val description = lines
-        .subList(titleIdx + 1, descEnd)
+        .subList(titleIdx + 1, firstSectionIdx)
         .joinToString("\n")
         .trim()
 
-    // Składniki — wiersze z "•" między Ingredients: a Preparation: (lub końcem)
+    // Tagi — wiersz "Tags: TAG1, TAG2, ..."
+    val tags: List<RecipeTag> = if (tagsIdx >= 0) {
+        val tagsPart = lines[tagsIdx].trim().removePrefix("Tags:").trim()
+        tagsPart.split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .mapNotNull { name ->
+                runCatching { RecipeTag.valueOf(name) }.getOrNull()
+            }
+    } else emptyList()
+
+    // Składniki
     val ingredients: List<String> = if (ingredientsIdx >= 0) {
         val end = if (preparationIdx > ingredientsIdx) preparationIdx else lines.size
         lines.subList(ingredientsIdx + 1, end)
@@ -84,7 +93,7 @@ fun parseRecipeText(text: String): ParsedRecipe? {
             .filter { it.isNotBlank() }
     } else emptyList()
 
-    // Kroki — wszystko po "Preparation:"
+    // Kroki
     val steps: String = if (preparationIdx >= 0) {
         lines.subList(preparationIdx + 1, lines.size)
             .joinToString("\n")
@@ -95,6 +104,7 @@ fun parseRecipeText(text: String): ParsedRecipe? {
         title       = title,
         description = description,
         ingredients = ingredients,
-        steps       = steps
+        steps       = steps,
+        tags        = tags
     )
 }

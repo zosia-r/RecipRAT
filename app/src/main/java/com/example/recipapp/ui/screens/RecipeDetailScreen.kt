@@ -147,7 +147,8 @@ fun RecipeDetailScreen(
                                             title       = r.title,
                                             description = r.description,
                                             ingredients = recipeWithDetails!!.ingredients.map { it.name },
-                                            steps       = r.executionDescription
+                                            steps       = r.executionDescription,
+                                            tags        = r.tags
                                         )
                                         val intent = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
