@@ -80,28 +80,5 @@ fun SplashScreen(onTimeout: () -> Unit) {
                 }
             }
         )
-
-        // ── Warstwa tekstowa — Playfair Display przez theme ───────────────────
-        Column(
-            modifier            = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter   = fadeIn(animationSpec = tween(durationMillis = 2500))
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text      = "RecipRAT",
-                        style     = MaterialTheme.typography.displayLarge,
-                        color     = MintCream
-                    )
-                }
-            }
-        }
     }
 }
