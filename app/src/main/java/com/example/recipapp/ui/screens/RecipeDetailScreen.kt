@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.recipapp.data.RecipeTag
+import com.example.recipapp.data.sharing.buildShareText
 import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
 import com.example.recipapp.timer.toTimeString
@@ -542,19 +543,4 @@ private fun DetailSectionCard(title: String, content: @Composable ColumnScope.()
             content()
         }
     }
-}
-
-// ── Budowanie tekstu do udostępnienia ─────────────────────────────────────────
-
-private fun buildShareText(
-    title: String, description: String,
-    ingredients: List<String>, steps: String
-): String = buildString {
-    appendLine("🍴 $title")
-    if (description.isNotBlank()) { appendLine(); appendLine(description) }
-    if (ingredients.isNotEmpty()) {
-        appendLine(); appendLine("Ingredients:")
-        ingredients.forEach { appendLine("• $it") }
-    }
-    if (steps.isNotBlank()) { appendLine(); appendLine("Preparation:"); appendLine(steps) }
 }

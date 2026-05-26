@@ -1,10 +1,9 @@
 package com.example.recipapp.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -32,11 +32,13 @@ import com.example.recipapp.ui.theme.DeepTealLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
+import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Favourites : Screen("favourites", "Favourites", Icons.Filled.Favorite)
     object Search     : Screen("search",     "Search",     Icons.Filled.Search)
     object New        : Screen("new",        "New",        Icons.Filled.Add)
+    object Import     : Screen("import",     "Import",     Icons.Filled.Add)
     object Detail : Screen("detail/{recipeId}", "Detail", Icons.Filled.Favorite) {
         fun createRoute(id: Long) = "detail/$id"
         const val routeWithArgs = "detail/{recipeId}"
@@ -48,6 +50,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object PhotoViewer : Screen("photo", "Photo", Icons.Filled.Favorite)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val app = androidx.compose.ui.platform.LocalContext.current
@@ -62,11 +65,91 @@ fun MainScreen() {
 
     val showNavBar = currentRoute != Screen.PhotoViewer.route
 
+    // ── Bottom sheet „dodaj / importuj" ──────────────────────────────────────
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showAddSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     fun navigateToTab(route: String) {
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState    = true
+        }
+    }
+
+    if (showAddSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddSheet = false },
+            sheetState       = sheetState,
+            shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            containerColor   = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier            = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Add recipe",
+                    style    = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                // ── Nowy ręcznie ──────────────────────────────────────────────
+                Button(
+                    onClick = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showAddSheet = false
+                            navController.navigate(Screen.New.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState    = true
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape  = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DeepTeal,
+                        contentColor   = MintCream
+                    )
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Create new recipe", style = MaterialTheme.typography.labelLarge)
+                }
+
+                // ── Import ────────────────────────────────────────────────────
+                OutlinedButton(
+                    onClick = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showAddSheet = false
+                            navController.navigate(Screen.Import.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState    = true
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape  = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
+                    border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+                        .copy(brush = androidx.compose.ui.graphics.SolidColor(DeepTeal))
+                ) {
+                    // ikona „wklej" złożona z dostępnych ikon Material
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Import from text", style = MaterialTheme.typography.labelLarge)
+                }
+            }
         }
     }
 
@@ -103,10 +186,7 @@ fun MainScreen() {
                         )
                     )
 
-                    // ── Nowy przepis — wyróżniony FAB ─────────────────────────
-                    val newSelected = currentDestination?.hierarchy
-                        ?.any { it.route == Screen.New.route } == true
-
+                    // ── Przycisk + — otwiera sheet ────────────────────────────
                     NavigationBarItem(
                         icon = {
                             Box(
@@ -127,14 +207,13 @@ fun MainScreen() {
                         },
                         label    = {
                             Text(
-                                Screen.New.label,
+                                "New",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (newSelected) DeepTeal
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        selected = newSelected,
-                        onClick  = { navigateToTab(Screen.New.route) },
+                        selected = false,
+                        onClick  = { showAddSheet = true },
                         colors   = NavigationBarItemDefaults.colors(
                             selectedIconColor   = androidx.compose.ui.graphics.Color.Transparent,
                             unselectedIconColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -142,7 +221,7 @@ fun MainScreen() {
                         )
                     )
 
-                    // ── Szukaj ───────────────────────────────────────────────
+                    // ── Szukaj ────────────────────────────────────────────────
                     val searchSelected = currentDestination?.hierarchy
                         ?.any { it.route == Screen.Search.route } == true
 
@@ -182,6 +261,12 @@ fun MainScreen() {
             }
             composable(Screen.New.route) {
                 NewRecipeScreen(
+                    viewModel      = recipeViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Import.route) {
+                ImportRecipeScreen(
                     viewModel      = recipeViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
