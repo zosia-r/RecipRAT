@@ -90,7 +90,7 @@ fun FavouritesScreen(
                         color     = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text      = "Tap the heart on any recipe\nto save it here ♡",
+                        text      = "Tap the heart on any recipe\nto save it here",
                         style     = MaterialTheme.typography.bodyMedium,
                         color     = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center

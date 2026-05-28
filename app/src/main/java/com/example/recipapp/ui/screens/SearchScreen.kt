@@ -297,15 +297,27 @@ fun SearchScreen(
                             tint     = DustyRose,
                             modifier = Modifier.size(48.dp)
                         )
-                        Text(
-                            text = if (searchQuery.isBlank() && selectedTags.isEmpty())
-                                "No recipes yet\nAdd your first recipe!"
-                            else
-                                "No recipes found\nmatching your search",
-                            style     = MaterialTheme.typography.bodyLarge,
-                            color     = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
+
+                        if (searchQuery.isBlank() && selectedTags.isEmpty()) {
+                            Text(
+                                text      = "No recipes yet",
+                                style     = MaterialTheme.typography.headlineSmall,
+                                color     = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text      = "Add your first recipe!",
+                                style     = MaterialTheme.typography.bodyMedium,
+                                color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            Text(
+                                text = "No recipes found\nmatching your search",
+                                style     = MaterialTheme.typography.bodyLarge,
+                                color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             } else {
