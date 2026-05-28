@@ -1,5 +1,6 @@
 package com.example.recipapp.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,13 +16,13 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -38,45 +39,58 @@ fun FavouritesScreen(
 ) {
     val recipes by viewModel.favouriteRecipes.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Favorite,
-                            contentDescription = null,
-                            tint     = CherryRose,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            "Favourites",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor    = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+    // Optymalizacja wydajności: Zapamiętujemy lambdy, aby obiekty RecipeCard nie recomponowały się bezcelowo podczas przewijania
+    val onToggleFavouriteStable = remember(viewModel) {
+        { id: Long, currentFav: Boolean ->
+            viewModel.toggleFavourite(id, currentFav)
+        }
+    }
+
+    val onRecipeClickStable = remember(onRecipeClick) {
+        { id: Long ->
+            onRecipeClick(id)
+        }
+    }
+
+    // Naprawione: Zamiast Scaffold używamy czystej struktury Column, co eliminuje konflikty paddingów dolnego paska nawigacji
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TopAppBar(
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint     = CherryRose,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        "Favourites",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor    = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.onBackground
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
+        )
+
         if (recipes.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier       = Modifier.weight(1f).fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(32.dp)
+                    modifier            = Modifier.padding(32.dp)
                 ) {
                     Icon(
                         Icons.Default.Favorite,
@@ -85,9 +99,9 @@ fun FavouritesScreen(
                         modifier = Modifier.size(56.dp)
                     )
                     Text(
-                        text      = "No favourites yet",
-                        style     = MaterialTheme.typography.headlineSmall,
-                        color     = MaterialTheme.colorScheme.onBackground
+                        text  = "No favourites yet",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text      = "Tap the heart on any recipe\nto save it here",
@@ -99,22 +113,20 @@ fun FavouritesScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                modifier            = Modifier.weight(1f).fillMaxSize(),
+                contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(recipes, key = { it.recipe.id }) { recipeWithDetails ->
                     RecipeCard(
                         recipeWithDetails = recipeWithDetails,
                         onToggleFavourite = {
-                            viewModel.toggleFavourite(
+                            onToggleFavouriteStable(
                                 recipeWithDetails.recipe.id,
                                 recipeWithDetails.recipe.isFavourite
                             )
                         },
-                        onClick = { onRecipeClick(recipeWithDetails.recipe.id) }
+                        onClick = { onRecipeClickStable(recipeWithDetails.recipe.id) }
                     )
                 }
             }

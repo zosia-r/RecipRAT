@@ -1,6 +1,7 @@
 package com.example.recipapp.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -70,38 +70,51 @@ fun SearchScreen(
 
     var showFilters by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint     = DeepTeal,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            "Search",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor    = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+    // ── Optymalizacja Wydajności: Stabilne referencje dla akcji LazyColumn i Tagów ──
+    val onToggleFavouriteStable = remember(viewModel) {
+        { id: Long, currentFav: Boolean -> viewModel.toggleFavourite(id, currentFav) }
+    }
+    val onRecipeClickStable = remember(onRecipeClick) {
+        { id: Long -> onRecipeClick(id) }
+    }
+    val onTagToggledStable = remember(viewModel) {
+        { tag: RecipeTag -> viewModel.onTagToggled(tag) }
+    }
+
+    // Naprawione: Zastąpienie Scaffold przez czysty Column (likwidacja pustych paddingów)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TopAppBar(
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint     = DeepTeal,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        "Search",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor    = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.onBackground
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
+        )
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .weight(1f)
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(Modifier.height(4.dp))
@@ -136,7 +149,6 @@ fun SearchScreen(
                     colors     = recipeTextFieldColors()
                 )
 
-                // Przycisk filtrów z odznaką
                 IconButton(onClick = { showFilters = !showFilters }) {
                     BadgedBox(
                         badge = {
@@ -169,7 +181,7 @@ fun SearchScreen(
                     selectedTags.forEach { tag ->
                         FilterChip(
                             selected     = true,
-                            onClick      = { viewModel.onTagToggled(tag) },
+                            onClick      = { onTagToggledStable(tag) },
                             label        = { Text(tag.label, style = MaterialTheme.typography.labelMedium) },
                             trailingIcon = {
                                 Icon(
@@ -221,11 +233,9 @@ fun SearchScreen(
                             val selectedInCategory = tagsInCategory.count { it in selectedTags }
 
                             Text(
-                                text = category.label +
-                                        if (selectedInCategory > 0) " ($selectedInCategory)" else "",
+                                text = category.label + if (selectedInCategory > 0) " ($selectedInCategory)" else "",
                                 style    = MaterialTheme.typography.labelMedium,
-                                color    = if (selectedInCategory > 0) DeepTeal
-                                else DustyRose,
+                                color    = if (selectedInCategory > 0) DeepTeal else DustyRose,
                                 modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                             )
 
@@ -234,7 +244,7 @@ fun SearchScreen(
                                     val selected = tag in selectedTags
                                     FilterChip(
                                         selected = selected,
-                                        onClick  = { viewModel.onTagToggled(tag) },
+                                        onClick  = { onTagToggledStable(tag) },
                                         label    = { Text(tag.label, style = MaterialTheme.typography.labelMedium) },
                                         shape    = RoundedCornerShape(50),
                                         colors   = FilterChipDefaults.filterChipColors(
@@ -268,11 +278,8 @@ fun SearchScreen(
                             .padding(vertical = 8.dp),
                         shape  = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
-                        border = ButtonDefaults.outlinedButtonBorder(
-                            enabled = true
-                        ).copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(DeepTeal)
-                        )
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+                            .copy(brush = androidx.compose.ui.graphics.SolidColor(DeepTeal))
                     ) {
                         Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
@@ -283,13 +290,16 @@ fun SearchScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── Wyniki ────────────────────────────────────────────────────────
+            // ── Wyniki wyszukiwania ───────────────────────────────────────────
             if (searchResults.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier       = Modifier.weight(1f).fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(32.dp)
+                        modifier            = Modifier.padding(32.dp)
                     ) {
                         Icon(
                             Icons.Default.Search,
@@ -300,9 +310,9 @@ fun SearchScreen(
 
                         if (searchQuery.isBlank() && selectedTags.isEmpty()) {
                             Text(
-                                text      = "No recipes yet",
-                                style     = MaterialTheme.typography.headlineSmall,
-                                color     = MaterialTheme.colorScheme.onBackground
+                                text  = "No recipes yet",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
                                 text      = "Add your first recipe!",
@@ -312,7 +322,7 @@ fun SearchScreen(
                             )
                         } else {
                             Text(
-                                text = "No recipes found\nmatching your search",
+                                text      = "No recipes found\nmatching your search",
                                 style     = MaterialTheme.typography.bodyLarge,
                                 color     = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -322,6 +332,7 @@ fun SearchScreen(
                 }
             } else {
                 LazyColumn(
+                    modifier            = Modifier.weight(1f).fillMaxSize(),
                     contentPadding      = PaddingValues(bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -329,12 +340,12 @@ fun SearchScreen(
                         RecipeCard(
                             recipeWithDetails = recipeWithDetails,
                             onToggleFavourite = {
-                                viewModel.toggleFavourite(
+                                onToggleFavouriteStable(
                                     recipeWithDetails.recipe.id,
                                     recipeWithDetails.recipe.isFavourite
                                 )
                             },
-                            onClick  = { onRecipeClick(recipeWithDetails.recipe.id) }
+                            onClick = { onRecipeClickStable(recipeWithDetails.recipe.id) }
                         )
                     }
                 }
