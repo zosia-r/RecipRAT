@@ -1,9 +1,12 @@
 package com.example.recipapp.ui.screens
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +30,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -52,7 +54,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,6 +65,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +76,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.sharing.buildShareText
 import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
@@ -85,10 +87,10 @@ import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.util.formatIngredientAmount
 import com.example.recipapp.util.getDisplayDetails
-import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.IngredientInput
+import com.example.recipapp.viewmodel.RecipeViewModel
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeDetailScreen(
     recipeId: Long,
@@ -101,320 +103,327 @@ fun RecipeDetailScreen(
     val recipeWithDetails by viewModel.getRecipeById(recipeId).collectAsState(initial = null)
     val recipe = recipeWithDetails?.recipe
 
-    val checkedIngredients = remember { mutableStateMapOf<Int, Boolean>() }
+    // Naprawione: Stan odznaczonych składników przetrwa obrót ekranu dzięki dedykowanemu mapSaver
+    val checkedIngredientsMapSaver = remember {
+        mapSaver(
+            save = { map -> map.mapKeys { it.key.toString() } },
+            restore = { restored ->
+                val mutableMap = restored.mapKeys { it.key.toInt() }.mapValues { it.value as Boolean }
+                mutableStateMapOf<Int, Boolean>().apply { putAll(mutableMap) }
+            }
+        )
+    }
+    val checkedIngredients = rememberSaveable(saver = checkedIngredientsMapSaver) {
+        mutableStateMapOf<Int, Boolean>()
+    }
 
     val allTimers by TimerService.timers.collectAsState()
     val timerState       = allTimers[recipeId]
-    var showTimerDialog  by remember { mutableStateOf(false) }
-    var showMenu         by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTimerDialog  by rememberSaveable { mutableStateOf(false) }
+    var showMenu         by rememberSaveable { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     val showAlarmDialog  = timerState is TimerState.Finished
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        recipe?.title ?: "",
-                        style = MaterialTheme.typography.headlineSmall,
-                        maxLines = 1
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    recipe?.let { r ->
+    // Optymalizacja lambd pod kątem wydajności kompozycji
+    val onToggleFavStable = remember(viewModel, recipeId) {
+        { currentFav: Boolean -> viewModel.toggleFavourite(recipeId, currentFav) }
+    }
 
-                        // ── Timer z odliczaniem ───────────────────────────────
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AnimatedVisibility(
-                                visible = timerState is TimerState.Running,
-                                enter   = fadeIn(),
-                                exit    = fadeOut()
-                            ) {
-                                if (timerState is TimerState.Running) {
-                                    Text(
-                                        text  = timerState.remainingSec.toTimeString(),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = DeepTeal
-                                    )
-                                }
-                            }
-                            IconButton(onClick = { showTimerDialog = true }) {
-                                Icon(
-                                    imageVector = if (timerState is TimerState.Running)
-                                        Icons.Filled.Timer else Icons.Outlined.Timer,
-                                    contentDescription = "Timer",
-                                    tint = if (timerState is TimerState.Running) DeepTeal
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+    // Naprawione: Usunięcie Scaffold. Czysty Column zapobiega konfliktom i martwym strefom układu
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TopAppBar(
+            title = {
+                Text(
+                    recipe?.title ?: "",
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                recipe?.let { r ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AnimatedVisibility(
+                            visible = timerState is TimerState.Running,
+                            enter   = fadeIn(),
+                            exit    = fadeOut()
+                        ) {
+                            if (timerState is TimerState.Running) {
+                                Text(
+                                    text  = timerState.remainingSec.toTimeString(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = DeepTeal
                                 )
                             }
                         }
-
-                        // ── Serduszko ─────────────────────────────────────────
-                        IconButton(onClick = { viewModel.toggleFavourite(r.id, r.isFavourite) }) {
+                        IconButton(onClick = { showTimerDialog = true }) {
                             Icon(
-                                imageVector = if (r.isFavourite)
-                                    Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Favourite",
-                                tint = if (r.isFavourite) CherryRose
+                                imageVector = if (timerState is TimerState.Running)
+                                    Icons.Filled.Timer else Icons.Outlined.Timer,
+                                contentDescription = "Timer",
+                                tint = if (timerState is TimerState.Running) DeepTeal
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
-                        // ── Menu 3 kropki ─────────────────────────────────────
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                            }
-                            DropdownMenu(
-                                expanded         = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text        = { Text("Edit", style = MaterialTheme.typography.bodyMedium) },
-                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DeepTeal) },
-                                    onClick     = { showMenu = false; onNavigateToEdit(r.id) }
-                                )
-                                DropdownMenuItem(
-                                    text        = { Text("Share", style = MaterialTheme.typography.bodyMedium) },
-                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = DeepTeal) },
-                                    onClick     = {
-                                        showMenu = false
-
-                                        val mappedIngredients = recipeWithDetails!!.ingredients.map { entity ->
-                                            IngredientInput(
-                                                name = entity.name,
-                                                amount = formatIngredientAmount(entity.amount),
-                                                unit = entity.unit ?: ""
-                                            )
-                                        }
-                                        val text = buildShareText(
-                                            title       = r.title,
-                                            description = r.description,
-                                            ingredients = mappedIngredients,
-                                            steps       = r.executionDescription,
-                                            tags        = r.tags
-                                        )
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(Intent.EXTRA_TEXT, text)
-                                            putExtra(Intent.EXTRA_SUBJECT, r.title)
-                                        }
-                                        context.startActivity(Intent.createChooser(intent, "Share recipe"))
-                                    }
-                                )
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                DropdownMenuItem(
-                                    text        = { Text("Delete", color = CherryRose, style = MaterialTheme.typography.bodyMedium) },
-                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = CherryRose) },
-                                    onClick     = { showMenu = false; showDeleteDialog = true }
-                                )
-                            }
-                        }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor            = MaterialTheme.colorScheme.background,
-                    titleContentColor         = MaterialTheme.colorScheme.onBackground,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor    = MaterialTheme.colorScheme.onBackground
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        if (recipeWithDetails == null) {
-            Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                CircularProgressIndicator(color = DeepTeal)
-            }
-            return@Scaffold
-        }
 
-        val photos      = recipeWithDetails!!.photos
-        val allPhotoUris = photos.map { it.uri }
-
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // ── Karuzela zdjęć ────────────────────────────────────────────────
-            if (photos.isNotEmpty()) {
-                val pagerState = rememberPagerState(pageCount = { photos.size })
-                Box {
-                    HorizontalPager(
-                        state    = pagerState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(260.dp)
-                    ) { page ->
-                        AsyncImage(
-                            model              = photos[page].uri,
-                            contentDescription = "Photo ${page + 1}",
-                            contentScale       = ContentScale.Crop,
-                            modifier           = Modifier
-                                .fillMaxSize()
-                                .clickable { onPhotoClick(photos[page].uri, allPhotoUris) }
+                    IconButton(onClick = { onToggleFavStable(r.isFavourite) }) {
+                        Icon(
+                            imageVector = if (r.isFavourite)
+                                Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favourite",
+                            tint = if (r.isFavourite) CherryRose
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    // Wskaźniki stron
-                    if (photos.size > 1) {
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded         = showMenu,
+                            onDismissRequest = { showMenu = false }
                         ) {
-                            photos.indices.forEach { index ->
-                                val selected = pagerState.currentPage == index
-                                Surface(
-                                    modifier = Modifier.size(if (selected) 8.dp else 6.dp),
-                                    shape    = CircleShape,
-                                    color    = if (selected) MintCream
-                                    else MintCream.copy(alpha = 0.45f)
-                                ) {}
-                            }
+                            DropdownMenuItem(
+                                text        = { Text("Edit", style = MaterialTheme.typography.bodyMedium) },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DeepTeal) },
+                                onClick     = { showMenu = false; onNavigateToEdit(r.id) }
+                            )
+                            DropdownMenuItem(
+                                text        = { Text("Share", style = MaterialTheme.typography.bodyMedium) },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = DeepTeal) },
+                                onClick     = {
+                                    showMenu = false
+                                    val mappedIngredients = recipeWithDetails!!.ingredients.map { entity ->
+                                        IngredientInput(
+                                            name   = entity.name,
+                                            amount = formatIngredientAmount(entity.amount),
+                                            unit   = entity.unit ?: ""
+                                        )
+                                    }
+                                    val text = buildShareText(
+                                        title       = r.title,
+                                        description = r.description,
+                                        ingredients = mappedIngredients,
+                                        steps       = r.executionDescription,
+                                        tags        = r.tags
+                                    )
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, text)
+                                        putExtra(Intent.EXTRA_SUBJECT, r.title)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Share recipe"))
+                                }
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            DropdownMenuItem(
+                                text        = { Text("Delete", color = CherryRose, style = MaterialTheme.typography.bodyMedium) },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = CherryRose) },
+                                onClick     = { showMenu = false; showDeleteDialog = true }
+                            )
                         }
                     }
                 }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor            = MaterialTheme.colorScheme.background,
+                titleContentColor         = MaterialTheme.colorScheme.onBackground,
+                navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                actionIconContentColor    = MaterialTheme.colorScheme.onBackground
+            )
+        )
+
+        if (recipeWithDetails == null) {
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                CircularProgressIndicator(color = DeepTeal)
             }
+        } else {
+            val photos       = recipeWithDetails!!.photos
+            val allPhotoUris = photos.map { it.uri }
 
             Column(
-                modifier            = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
             ) {
-                // ── Tagi ──────────────────────────────────────────────────────
-                val tags = recipe?.tags ?: emptyList()
+                if (photos.isNotEmpty()) {
+                    val pagerState = rememberPagerState(pageCount = { photos.size })
+                    Box {
+                        HorizontalPager(
+                            state    = pagerState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(260.dp)
+                        ) { page ->
+                            AsyncImage(
+                                model              = photos[page].uri,
+                                contentDescription = "Photo ${page + 1}",
+                                contentScale       = ContentScale.Crop,
+                                modifier           = Modifier
+                                    .fillMaxSize()
+                                    .clickable { onPhotoClick(photos[page].uri, allPhotoUris) }
+                            )
+                        }
 
-                if (tags.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement   = Arrangement.spacedBy(4.dp)
-                    ) {
-                        tags.forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = DustyRoseLight,
-                                modifier = Modifier.height(26.dp)
+                        if (photos.size > 1) {
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(horizontal = 10.dp)
-                                ) {
-                                    Text(
-                                        text  = tag.label,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                photos.indices.forEach { index ->
+                                    val selected = pagerState.currentPage == index
+                                    Surface(
+                                        modifier = Modifier.size(if (selected) 8.dp else 6.dp),
+                                        shape    = CircleShape,
+                                        color    = if (selected) MintCream else MintCream.copy(alpha = 0.45f)
+                                    ) {}
                                 }
                             }
                         }
                     }
                 }
 
-                // ── Opis ──────────────────────────────────────────────────────
-                if (recipe?.description?.isNotBlank() == true) {
-                    DetailSectionCard(title = "Description") {
-                        Text(
-                            recipe.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                Column(
+                    modifier            = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val tags = recipe?.tags ?: emptyList()
+
+                    if (tags.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement   = Arrangement.spacedBy(4.dp)
+                        ) {
+                            tags.forEach { tag ->
+                                Surface(
+                                    shape    = RoundedCornerShape(50),
+                                    color    = DustyRoseLight,
+                                    modifier = Modifier.height(26.dp)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier         = Modifier.padding(horizontal = 10.dp)
+                                    ) {
+                                        Text(
+                                            text  = tag.label,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
 
-                // ── Składniki ─────────────────────────────────────────────────
-                val ingredients = recipeWithDetails!!.ingredients
-                if (ingredients.isNotEmpty()) {
-                    DetailSectionCard(title = "Ingredients") {
-                        ingredients.forEachIndexed { index, ingredient ->
-                            val isChecked = checkedIngredients[index] == true
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp)
-                            ) {
-                                Checkbox(
-                                    checked         = isChecked,
-                                    onCheckedChange = { checkedIngredients[index] = it },
-                                    colors          = CheckboxDefaults.colors(
-                                        checkedColor   = DeepTeal,
-                                        checkmarkColor = MintCream
+                    if (recipe?.description?.isNotBlank() == true) {
+                        DetailSectionCard(title = "Description") {
+                            Text(
+                                recipe.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    val ingredients = recipeWithDetails!!.ingredients
+                    if (ingredients.isNotEmpty()) {
+                        DetailSectionCard(title = "Ingredients") {
+                            ingredients.forEachIndexed { index, ingredient ->
+                                val isChecked = checkedIngredients[index] == true
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp)
+                                ) {
+                                    Checkbox(
+                                        checked         = isChecked,
+                                        onCheckedChange = { checkedIngredients[index] = it },
+                                        colors          = CheckboxDefaults.colors(
+                                            checkedColor   = DeepTeal,
+                                            checkmarkColor = MintCream
+                                        )
                                     )
-                                )
 
-                                Text(
-                                    text     = ingredient.name,
-                                    style    = MaterialTheme.typography.bodyMedium.copy(
-                                        textDecoration = if (isChecked) TextDecoration.LineThrough
-                                        else TextDecoration.None
-                                    ),
-                                    color    = if (isChecked)
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    else
-                                        MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f) // Wpycha ilość i jednostkę do prawej krawędzi
-                                )
-
-                                val displayDetails = ingredient.getDisplayDetails()
-
-                                if (displayDetails.isNotEmpty()) {
                                     Text(
-                                        text  = displayDetails,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                        text     = ingredient.name,
+                                        style    = MaterialTheme.typography.bodyMedium.copy(
                                             textDecoration = if (isChecked) TextDecoration.LineThrough
                                             else TextDecoration.None
                                         ),
-                                        color = if (isChecked)
+                                        color    = if (isChecked)
                                             MaterialTheme.colorScheme.onSurfaceVariant
                                         else
-                                            DeepTeal,
-                                        modifier = Modifier.padding(start = 8.dp)
+                                            MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    val displayDetails = ingredient.getDisplayDetails()
+
+                                    if (displayDetails.isNotEmpty()) {
+                                        Text(
+                                            text  = displayDetails,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                textDecoration = if (isChecked) TextDecoration.LineThrough
+                                                else TextDecoration.None
+                                            ),
+                                            color = if (isChecked)
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            else
+                                                DeepTeal,
+                                            modifier = Modifier.padding(start = 8.dp)
+                                        )
+                                    }
+                                }
+
+                                if (index < ingredients.lastIndex) {
+                                    HorizontalDivider(
+                                        modifier  = Modifier.padding(vertical = 2.dp),
+                                        color     = MaterialTheme.colorScheme.outlineVariant
                                     )
                                 }
                             }
 
-                            if (index < ingredients.lastIndex) {
-                                HorizontalDivider(
-                                    modifier  = Modifier.padding(vertical = 2.dp),
-                                    color     = MaterialTheme.colorScheme.outlineVariant
-                                )
-                            }
-                        }
-
-                        if (checkedIngredients.values.any { it }) {
-                            TextButton(
-                                onClick  = { checkedIngredients.clear() },
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("Reset", color = DustyRose, style = MaterialTheme.typography.labelLarge)
+                            if (checkedIngredients.values.any { it }) {
+                                TextButton(
+                                    onClick  = { checkedIngredients.clear() },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text("Reset", color = DustyRose, style = MaterialTheme.typography.labelLarge)
+                                }
                             }
                         }
                     }
-                }
-                // ── Sposób wykonania ──────────────────────────────────────────
-                if (recipe?.executionDescription?.isNotBlank() == true) {
-                    DetailSectionCard(title = "Instructions") {
-                        Text(
-                            recipe.executionDescription ?: "", // Bezpieczny fallback na wypadek null
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
 
-                Spacer(Modifier.height(8.dp))
+                    if (recipe?.executionDescription?.isNotBlank() == true) {
+                        DetailSectionCard(title = "Instructions") {
+                            Text(
+                                recipe.executionDescription ?: "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                }
             }
         }
     }
 
-    // ── Dialog timera ─────────────────────────────────────────────────────────
+    // ── Sekwencja Dialogów ───────────────────────────────────────────────────
     if (showTimerDialog) {
         TimerSetDialog(
             currentTimer = timerState as? TimerState.Running,
@@ -428,19 +437,11 @@ fun RecipeDetailScreen(
         )
     }
 
-    // ── Dialog alarmu ─────────────────────────────────────────────────────────
     if (showAlarmDialog) {
         AlertDialog(
             onDismissRequest = {},
-            title = {
-                Text("⏰ Timer finished!", style = MaterialTheme.typography.headlineSmall)
-            },
-            text = {
-                Text(
-                    "${recipe?.title} is ready!",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
+            title = { Text("⏰ Timer finished!", style = MaterialTheme.typography.headlineSmall) },
+            text  = { Text("${recipe?.title} is ready!", style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 Button(
                     onClick = { TimerService.dismissAlarm(context, recipeId) },
@@ -454,17 +455,11 @@ fun RecipeDetailScreen(
         )
     }
 
-    // ── Dialog potwierdzenia usunięcia ────────────────────────────────────────
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete recipe", style = MaterialTheme.typography.headlineSmall) },
-            text  = {
-                Text(
-                    "Are you sure you want to delete \"${recipe?.title}\"?",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
+            text  = { Text("Are you sure you want to delete \"${recipe?.title}\"?", style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -472,11 +467,8 @@ fun RecipeDetailScreen(
                         viewModel.deleteRecipe(recipe!!)
                         onNavigateBack()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CherryRose,
-                        contentColor   = MintCream
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = CherryRose, contentColor = MintCream),
+                    shape  = RoundedCornerShape(12.dp)
                 ) {
                     Text("Delete", style = MaterialTheme.typography.labelLarge)
                 }
@@ -491,8 +483,6 @@ fun RecipeDetailScreen(
     }
 }
 
-// ── Dialog timera ─────────────────────────────────────────────────────────────
-
 @Composable
 private fun TimerSetDialog(
     currentTimer: TimerState.Running?,
@@ -501,10 +491,10 @@ private fun TimerSetDialog(
     onStop: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var minutes by remember {
+    var minutes by rememberSaveable {
         mutableStateOf(if (currentTimer != null) (currentTimer.remainingSec / 60).toString() else "5")
     }
-    var seconds by remember {
+    var seconds by rememberSaveable {
         mutableStateOf(if (currentTimer != null) (currentTimer.remainingSec % 60).toString() else "0")
     }
 
@@ -581,8 +571,6 @@ private fun TimerSetDialog(
         shape = RoundedCornerShape(20.dp)
     )
 }
-
-// ── SectionCard ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun DetailSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {

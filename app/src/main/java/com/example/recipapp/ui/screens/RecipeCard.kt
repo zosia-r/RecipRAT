@@ -23,11 +23,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.relation.RecipeWithDetails
 import com.example.recipapp.ui.theme.CherryRose
 import com.example.recipapp.ui.theme.DustyRoseLight
@@ -39,13 +39,16 @@ fun RecipeCard(
     onClick: () -> Unit
 ) {
     val recipe = recipeWithDetails.recipe
-
     val tags = recipe.tags
 
+    // Optymalizacja referencji dla zapobiegania niepotrzebnym rekompozycjom karty potrawy
+    val onToggleStable = remember(onToggleFavourite) { onToggleFavourite }
+    val onClickStable = remember(onClick) { onClick }
+
     Card(
-        onClick = onClick,
+        onClick  = onClickStable,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape    = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 3.dp,
             pressedElevation  = 6.dp
@@ -58,8 +61,8 @@ fun RecipeCard(
 
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment     = Alignment.Top,
+                modifier              = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text  = recipe.title,
@@ -70,7 +73,7 @@ fun RecipeCard(
                         .padding(end = 4.dp)
                 )
                 IconButton(
-                    onClick  = onToggleFavourite,
+                    onClick  = onToggleStable,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
@@ -102,14 +105,15 @@ fun RecipeCard(
                     verticalArrangement   = Arrangement.spacedBy(4.dp)
                 ) {
                     tags.forEach { tag ->
+                        // Usunięto problematyczny blok key(), zapewniając pełną kompatybilność i stabilność layoutu
                         Surface(
-                            shape = RoundedCornerShape(50),
-                            color = DustyRoseLight,
+                            shape    = RoundedCornerShape(50),
+                            color    = DustyRoseLight,
                             modifier = Modifier.height(26.dp)
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier.padding(horizontal = 10.dp)
+                                modifier         = Modifier.padding(horizontal = 10.dp)
                             ) {
                                 Text(
                                     text  = tag.label,
@@ -122,7 +126,6 @@ fun RecipeCard(
                 }
             }
 
-            // Dekoracyjna linia akcentująca
             Spacer(Modifier.height(14.dp))
             HorizontalDivider(
                 modifier  = Modifier.padding(end = 12.dp),
