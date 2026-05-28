@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -29,7 +26,6 @@ import com.example.recipapp.R
 @Composable
 fun SplashScreen(onTimeout: () -> Unit) {
     val context = LocalContext.current
-    var isVisible by remember { mutableStateOf(false) }
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -41,7 +37,6 @@ fun SplashScreen(onTimeout: () -> Unit) {
         }
     }
 
-    LaunchedEffect(Unit) { isVisible = true }
 
     // Reakcja na koniec wideo (pozostawiamy jako opcję alternatywną, gdy użytkownik nie kliknie)
     LaunchedEffect(exoPlayer) {

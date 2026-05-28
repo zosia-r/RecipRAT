@@ -130,7 +130,6 @@ fun MainScreen() {
                 Button(
                     onClick = {
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            showAddSheet = false
                             navController.navigate(Screen.New.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
@@ -156,7 +155,6 @@ fun MainScreen() {
                 OutlinedButton(
                     onClick = {
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            showAddSheet = false
                             navController.navigate(Screen.Import.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true

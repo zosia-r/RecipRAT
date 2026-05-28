@@ -322,7 +322,6 @@ fun SearchScreen(
                                     recipeWithDetails.recipe.isFavourite
                                 )
                             },
-                            onDelete = { viewModel.deleteRecipe(recipeWithDetails.recipe) },
                             onClick  = { onRecipeClick(recipeWithDetails.recipe.id) }
                         )
                     }

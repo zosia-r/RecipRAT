@@ -228,7 +228,7 @@ fun ImportRecipeScreen(
                                 ingredients = ingredients.toMutableList().also { it.removeAt(index) }
                             }) {
                                 Icon(
-                                    androidx.compose.material.icons.Icons.Default.Close,
+                                    Icons.Default.Close,
                                     contentDescription = "Remove",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -241,7 +241,7 @@ fun ImportRecipeScreen(
                     modifier = Modifier.align(androidx.compose.ui.Alignment.End)
                 ) {
                     Icon(
-                        androidx.compose.material.icons.Icons.Default.Add,
+                        Icons.Default.Add,
                         contentDescription = null,
                         tint = DeepTeal
                     )

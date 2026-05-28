@@ -36,7 +36,6 @@ import com.example.recipapp.ui.theme.DustyRoseLight
 fun RecipeCard(
     recipeWithDetails: RecipeWithDetails,
     onToggleFavourite: () -> Unit,
-    onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
     val recipe = recipeWithDetails.recipe

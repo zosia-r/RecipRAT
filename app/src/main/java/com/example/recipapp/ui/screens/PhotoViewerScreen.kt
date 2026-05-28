@@ -118,12 +118,11 @@ private fun ZoomableImage(uri: String) {
             .pointerInput(Unit) {
                 awaitEachGesture {
                     // Czekaj na pierwsze dotknięcie
-                    val down = awaitFirstDown(requireUnconsumed = false)
+                    awaitFirstDown(requireUnconsumed = false)
 
                     var zoom        = 1f
                     var panX        = 0f
                     var panY        = 0f
-                    var pastSlop    = false
 
                     do {
                         val event = awaitPointerEvent()
