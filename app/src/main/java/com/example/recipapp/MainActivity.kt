@@ -38,6 +38,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
+        // ── UKRYWANIE TYLKO DOLNEGO PASKA DLA CAŁEJ APLIKACJI ──────────────
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        // Ukrywa wyłącznie pasek nawigacyjny (navigationBars)
+        insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+        // Pozwala na tymczasowe pokazanie paska gestem od dolnej krawędzi
+        insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        // ──────────────────────────────────────────────────────────────────
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
