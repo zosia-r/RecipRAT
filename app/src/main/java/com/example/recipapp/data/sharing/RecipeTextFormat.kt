@@ -1,6 +1,6 @@
 package com.example.recipapp.data.sharing
 
-import com.example.recipapp.data.RecipeTag
+import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.viewmodel.IngredientInput
 
 /**

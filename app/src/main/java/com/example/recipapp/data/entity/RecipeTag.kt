@@ -1,4 +1,4 @@
-package com.example.recipapp.data
+package com.example.recipapp.data.entity
 
 /**
  * Predefined tags for recipes.

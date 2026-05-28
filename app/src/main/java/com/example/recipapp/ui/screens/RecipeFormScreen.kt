@@ -54,7 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.recipapp.data.RecipeTag
+import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.data.sharing.parseRecipeText
 import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.MintCream

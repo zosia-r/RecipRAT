@@ -14,10 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.recipapp.data.RecipeTag
-import com.example.recipapp.data.TagCategory
+import com.example.recipapp.data.entity.RecipeTag
+import com.example.recipapp.data.entity.TagCategory
 import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
 

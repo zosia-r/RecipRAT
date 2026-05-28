@@ -1,7 +1,7 @@
 package com.example.recipapp.data.database
 
 import androidx.room.TypeConverter
-import com.example.recipapp.data.RecipeTag
+import com.example.recipapp.data.entity.RecipeTag
 
 /**
  * Converts List<String> to String and vice versa for SQLite.
