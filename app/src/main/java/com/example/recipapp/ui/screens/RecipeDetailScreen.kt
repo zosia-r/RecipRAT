@@ -54,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +63,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,6 +83,7 @@ import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
 import com.example.recipapp.timer.toTimeString
 import com.example.recipapp.ui.theme.CherryRose
+import com.example.recipapp.ui.theme.CoffeeBean
 import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
@@ -103,7 +106,6 @@ fun RecipeDetailScreen(
     val recipeWithDetails by viewModel.getRecipeById(recipeId).collectAsState(initial = null)
     val recipe = recipeWithDetails?.recipe
 
-    // Naprawione: Stan odznaczonych składników przetrwa obrót ekranu dzięki dedykowanemu mapSaver
     val checkedIngredientsMapSaver = remember {
         mapSaver(
             save = { map -> map.mapKeys { it.key.toString() } },
@@ -124,12 +126,10 @@ fun RecipeDetailScreen(
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     val showAlarmDialog  = timerState is TimerState.Finished
 
-    // Optymalizacja lambd pod kątem wydajności kompozycji
     val onToggleFavStable = remember(viewModel, recipeId) {
         { currentFav: Boolean -> viewModel.toggleFavourite(recipeId, currentFav) }
     }
 
-    // Naprawione: Usunięcie Scaffold. Czysty Column zapobiega konfliktom i martwym strefom układu
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -339,7 +339,36 @@ fun RecipeDetailScreen(
 
                     val ingredients = recipeWithDetails!!.ingredients
                     if (ingredients.isNotEmpty()) {
+                        // Reaktywny mnożnik porcji, odporny na obrót ekranu
+                        var scaleFactor by rememberSaveable { mutableFloatStateOf(1f) }
+
                         DetailSectionCard(title = "Ingredients") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Portion size: ${formatIngredientAmount(scaleFactor.toDouble())}x",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = CoffeeBean
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TextButton(
+                                        onClick = { if (scaleFactor > 0.25f) scaleFactor -= 0.25f },
+                                        enabled = scaleFactor > 0.25f
+                                    ) {
+                                        Text("-", style = MaterialTheme.typography.labelLarge, color = CoffeeBean)
+                                    }
+
+                                    TextButton(onClick = { scaleFactor += 0.25f }) {
+                                        Text("+", style = MaterialTheme.typography.labelLarge, color = CoffeeBean)
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(bottom = 8.dp))
+
                             ingredients.forEachIndexed { index, ingredient ->
                                 val isChecked = checkedIngredients[index] == true
                                 Row(
@@ -370,7 +399,8 @@ fun RecipeDetailScreen(
                                         modifier = Modifier.weight(1f)
                                     )
 
-                                    val displayDetails = ingredient.getDisplayDetails()
+                                    // Dynamicznie obliczany tekst na podstawie wybranej skali porcji
+                                    val displayDetails = ingredient.getDisplayDetails(scaleFactor)
 
                                     if (displayDetails.isNotEmpty()) {
                                         Text(
@@ -401,7 +431,7 @@ fun RecipeDetailScreen(
                                     onClick  = { checkedIngredients.clear() },
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
-                                    Text("Reset", color = DustyRose, style = MaterialTheme.typography.labelLarge)
+                                    Text("Reset checks", color = DustyRose, style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
@@ -423,7 +453,6 @@ fun RecipeDetailScreen(
         }
     }
 
-    // ── Sekwencja Dialogów ───────────────────────────────────────────────────
     if (showTimerDialog) {
         TimerSetDialog(
             currentTimer = timerState as? TimerState.Running,

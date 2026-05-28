@@ -19,8 +19,11 @@ fun formatIngredientAmount(amount: Double?): String {
  * Funkcja rozszerzająca, która generuje pełny, gotowy tekst miary i jednostki dla składnika.
  * Np. "250 g", "0.5 łyżeczki", lub "" (jeśli brak miary)
  */
-fun IngredientEntity.getDisplayDetails(): String {
-    val amountText = formatIngredientAmount(this.amount)
+fun IngredientEntity.getDisplayDetails(scale: Float = 1f): String {
+    val baseAmount = this.amount
+    val scaledAmount = if (baseAmount != null) baseAmount * scale else null
+
+    val amountText = formatIngredientAmount(scaledAmount)
     val unitText = this.unit ?: ""
     return "$amountText $unitText".trim()
 }
