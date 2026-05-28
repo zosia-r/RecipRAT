@@ -1,6 +1,9 @@
 package com.example.recipapp.data
 
-// Predefined tags for recipes
+/**
+ * Predefined tags for recipes.
+ */
+
 enum class RecipeTag(val label: String, val category: TagCategory) {
 
     // Meal type

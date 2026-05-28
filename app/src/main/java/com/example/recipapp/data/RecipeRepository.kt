@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.Flow
 
 class RecipeRepository(private val dao: RecipeDao) {
 
-    val allRecipes: Flow<List<RecipeWithDetails>> = dao.getAllRecipesWithDetails()
-    val favouriteRecipes: Flow<List<RecipeWithDetails>> = dao.getFavouriteRecipes()
+    val allRecipes: Flow<List<RecipeWithDetails>> =
+        dao.getAllRecipesWithDetails()
+    val favouriteRecipes: Flow<List<RecipeWithDetails>> =
+        dao.getFavouriteRecipes()
 
-    fun getRecipeById(id: Long): Flow<RecipeWithDetails?> = dao.getRecipeById(id)
+    fun getRecipeById(id: Long): Flow<RecipeWithDetails?> =
+        dao.getRecipeById(id)
 
     fun searchRecipes(query: String): Flow<List<RecipeWithDetails>> =
         dao.searchRecipes(query)
@@ -21,30 +24,18 @@ class RecipeRepository(private val dao: RecipeDao) {
     fun searchRecipesWithTag(query: String, tag: String): Flow<List<RecipeWithDetails>> =
         dao.searchRecipesWithTag(query, tag)
 
-    @Transaction
     suspend fun insertFullRecipe(
         recipe: RecipeEntity,
         ingredients: List<IngredientEntity>,
         photos: List<PhotoEntity>
-    ) {
-        val recipeId = dao.insertRecipe(recipe)
-        dao.insertIngredients(ingredients.map { it.copy(recipeId = recipeId) })
-        dao.insertPhotos(photos.map { it.copy(recipeId = recipeId) })
-    }
+    ) = dao.insertFullRecipe(recipe, ingredients, photos)
 
-    @Transaction
     suspend fun updateRecipe(
         recipe: RecipeEntity,
         ingredients: List<IngredientEntity>,
         newPhotos: List<PhotoEntity>,
         removedPhotoPaths: List<String>
-    ) {
-        dao.updateRecipe(recipe)
-        dao.deleteIngredientsByRecipe(recipe.id)
-        dao.insertIngredients(ingredients.map { it.copy(recipeId = recipe.id) })
-        if (removedPhotoPaths.isNotEmpty()) dao.deletePhotosByPaths(removedPhotoPaths)
-        if (newPhotos.isNotEmpty()) dao.insertPhotos(newPhotos.map { it.copy(recipeId = recipe.id) })
-    }
+    ) = dao.updateFullRecipe(recipe, ingredients, newPhotos, removedPhotoPaths)
 
     suspend fun deleteRecipe(recipe: RecipeEntity) = dao.deleteRecipe(recipe)
 

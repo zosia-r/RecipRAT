@@ -10,6 +10,11 @@ import com.example.recipapp.data.entity.IngredientEntity
 import com.example.recipapp.data.entity.PhotoEntity
 import com.example.recipapp.data.entity.RecipeEntity
 
+/**
+ * Database for recipes.
+ * Contains 3 tables: recipes, ingredients, photos.
+ */
+
 @Database(
     entities = [RecipeEntity::class, IngredientEntity::class, PhotoEntity::class],
     version = 1,

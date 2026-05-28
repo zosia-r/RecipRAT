@@ -16,8 +16,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RecipeDao {
 
-    // CREATE
-
+    // ********** CREATE **********
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRecipe(recipe: RecipeEntity): Long
 
@@ -27,8 +26,18 @@ interface RecipeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPhotos(photos: List<PhotoEntity>)
 
-    // READ
+    @Transaction
+    suspend fun insertFullRecipe(
+        recipe: RecipeEntity,
+        ingredients: List<IngredientEntity>,
+        photos: List<PhotoEntity>
+    ) {
+        val recipeId = insertRecipe(recipe)
+        insertIngredients(ingredients.map { it.copy(recipeId = recipeId) })
+        insertPhotos(photos.map { it.copy(recipeId = recipeId) })
+    }
 
+    // ********** READ **********
     @Transaction
     @Query("SELECT * FROM recipes ORDER BY title ASC")
     fun getAllRecipesWithDetails(): Flow<List<RecipeWithDetails>>
@@ -45,38 +54,47 @@ interface RecipeDao {
     @Query("SELECT * FROM recipes WHERE title LIKE '%' || :query || '%' ORDER BY title ASC")
     fun searchRecipes(query: String): Flow<List<RecipeWithDetails>>
 
-    /**
-     * Filtrowanie po tagu – sprawdzamy czy kolumna tags zawiera nazwę tagu.
-     * Tagi są zapisane jako "TAG1|||TAG2|||TAG3", więc szukamy po nazwie enuma.
-     */
     @Transaction
-    @Query("SELECT * FROM recipes WHERE tags LIKE '%' || :tag || '%' ORDER BY title ASC")
+    @Query("""
+        SELECT * FROM recipes 
+        WHERE '|||' || tags || '|||' 
+        LIKE '%|||' || :tag || '|||%' 
+        ORDER BY title ASC
+    """)
     fun getRecipesByTag(tag: String): Flow<List<RecipeWithDetails>>
 
-    /**
-     * Wyszukiwanie z opcjonalnym tagiem.
-     * Gdy tag jest pusty – szuka tylko po tytule.
-     * Gdy tag niepusty – szuka po tytule I tagu jednocześnie.
-     */
     @Transaction
     @Query("""
         SELECT * FROM recipes 
         WHERE title LIKE '%' || :query || '%'
-        AND (:tag = '' OR tags LIKE '%' || :tag || '%')
+        AND (:tag = '' OR '|||' || tags || '|||' LIKE '%|||' || :tag || '|||%')
         ORDER BY title ASC
     """)
     fun searchRecipesWithTag(query: String, tag: String): Flow<List<RecipeWithDetails>>
 
-    // UPDATE
 
+    // ********** UPDATE **********
     @Query("UPDATE recipes SET isFavourite = :isFavourite WHERE id = :id")
     suspend fun updateFavourite(id: Long, isFavourite: Boolean)
 
     @Update
     suspend fun updateRecipe(recipe: RecipeEntity)
 
-    // DELETE
+    @Transaction
+    suspend fun updateFullRecipe(
+        recipe: RecipeEntity,
+        ingredients: List<IngredientEntity>,
+        newPhotos: List<PhotoEntity>,
+        removedPhotoPaths: List<String>
+    ) {
+        updateRecipe(recipe)
+        deleteIngredientsByRecipe(recipe.id)
+        insertIngredients(ingredients.map { it.copy(recipeId = recipe.id) })
+        if (removedPhotoPaths.isNotEmpty()) deletePhotosByPaths(removedPhotoPaths)
+        if (newPhotos.isNotEmpty()) insertPhotos(newPhotos.map { it.copy(recipeId = recipe.id) })
+    }
 
+    // ********** DELETE **********
     @Delete
     suspend fun deleteRecipe(recipe: RecipeEntity)
 

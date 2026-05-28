@@ -278,9 +278,8 @@ fun RecipeDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // ── Tagi ──────────────────────────────────────────────────────
-                val tags = recipe!!.tags.mapNotNull { name ->
-                    runCatching { RecipeTag.valueOf(name) }.getOrNull()
-                }
+                val tags = recipe?.tags ?: emptyList()
+
                 if (tags.isNotEmpty()) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -308,7 +307,7 @@ fun RecipeDetailScreen(
                 }
 
                 // ── Opis ──────────────────────────────────────────────────────
-                if (recipe.description.isNotBlank()) {
+                if (recipe?.description?.isNotBlank() == true) {
                     DetailSectionCard(title = "Description") {
                         Text(
                             recipe.description,
@@ -377,10 +376,10 @@ fun RecipeDetailScreen(
                 }
 
                 // ── Sposób wykonania ──────────────────────────────────────────
-                if (recipe.executionDescription.isNotBlank()) {
+                if (recipe?.executionDescription?.isNotBlank() == true) {
                     DetailSectionCard(title = "Instructions") {
                         Text(
-                            recipe.executionDescription,
+                            recipe.executionDescription ?: "", // Bezpieczny fallback na wypadek null
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )

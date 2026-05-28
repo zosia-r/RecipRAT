@@ -79,11 +79,7 @@ fun EditRecipeScreen(
     var newPhotoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     var selectedTags by remember {
-        mutableStateOf(
-            recipe.tags.mapNotNull { name ->
-                runCatching { RecipeTag.valueOf(name) }.getOrNull()
-            }
-        )
+        mutableStateOf(recipe.tags)
     }
 
     var titleError by remember { mutableStateOf(false) }

@@ -6,13 +6,17 @@ import com.example.recipapp.data.entity.IngredientEntity
 import com.example.recipapp.data.entity.PhotoEntity
 import com.example.recipapp.data.entity.RecipeEntity
 
+/**
+ * Relationship between recipe and its entities.
+ */
+
 data class RecipeWithDetails(
-    @Embedded val recipe: RecipeEntity, // wbuduj wszystkie pola z RecipeEntity
+    @Embedded val recipe: RecipeEntity,
     @Relation(
         parentColumn = "id",
         entityColumn = "recipeId"
     )
-    val ingredients: List<IngredientEntity>, // mówi roomowi jak połączyć tabele
+    val ingredients: List<IngredientEntity>,
     @Relation(
         parentColumn = "id",
         entityColumn = "recipeId"

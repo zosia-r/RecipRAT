@@ -40,9 +40,7 @@ fun RecipeCard(
 ) {
     val recipe = recipeWithDetails.recipe
 
-    val tags = recipe.tags.mapNotNull { name ->
-        runCatching { RecipeTag.valueOf(name) }.getOrNull()
-    }
+    val tags = recipe.tags
 
     Card(
         onClick = onClick,

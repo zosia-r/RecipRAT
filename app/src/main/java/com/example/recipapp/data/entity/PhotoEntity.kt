@@ -13,7 +13,7 @@ import androidx.room.PrimaryKey
         childColumns = ["recipeId"],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("recipeId")]   // przyspiesza pobieranie zdjec do przepisu
+    indices = [Index("recipeId")]
 )
 data class PhotoEntity(
     @PrimaryKey(autoGenerate = true)

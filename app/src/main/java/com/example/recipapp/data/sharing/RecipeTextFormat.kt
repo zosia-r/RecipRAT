@@ -2,25 +2,33 @@ package com.example.recipapp.data.sharing
 
 import com.example.recipapp.data.RecipeTag
 
-// Format:
-//   🍴 <tytuł>
-//   <pusty wiersz>
-//   <opis>                       (opcjonalny)
-//   <pusty wiersz>
-//   Tags: TAG1, TAG2             (opcjonalne)
-//   <pusty wiersz>
-//   Ingredients:
-//   • składnik 1
-//   <pusty wiersz>
-//   Preparation:
-//   <kroki>
+/**
+ * Module for parsing and building share text.
+ * Allows recipe export and import.
+ */
+
+
+/**
+ Format:
+   🍴 <title>
+   <empty line>
+   <description>          (optional)
+   <empty line>
+   Tags: 🍳 Breakfast, 🍬 Sweet       (opcjonalne)
+   <empty line>
+   Ingredients:
+   • ingredient 1
+   <empty line>
+   Preparation:
+   <steps>
+ **/
 
 data class ParsedRecipe(
     val title: String,
     val description: String,
     val ingredients: List<String>,
     val steps: String,
-    val tags: List<RecipeTag>        // ← nowe pole
+    val tags: List<RecipeTag>
 )
 
 fun buildShareText(
@@ -28,17 +36,16 @@ fun buildShareText(
     description: String,
     ingredients: List<String>,
     steps: String,
-    tags: List<String> = emptyList()  // ← nowy parametr
+    tags: List<RecipeTag> = emptyList()
 ): String = buildString {
     appendLine("🍴 $title")
     if (description.isNotBlank()) {
         appendLine()
         appendLine(description)
     }
-    if (tags.isNotEmpty()) {               // ← nowa sekcja Tags
+    if (tags.isNotEmpty()) {
         appendLine()
-        appendLine("Tags: ${tags.joinToString(", ") { it }}")
-    }
+        appendLine("Tags: ${tags.joinToString(", ") { it.label }}")    }
     if (ingredients.isNotEmpty()) {
         appendLine()
         appendLine("Ingredients:")
@@ -64,7 +71,6 @@ fun parseRecipeText(text: String): ParsedRecipe? {
     val ingredientsIdx = lines.indexOfFirst { it.trim() == "Ingredients:" }
     val preparationIdx = lines.indexOfFirst { it.trim() == "Preparation:" }
 
-    // Opis — wiersze między tytułem a pierwszą sekcją (Tags / Ingredients / Preparation)
     val firstSectionIdx = listOf(tagsIdx, ingredientsIdx, preparationIdx)
         .filter { it > titleIdx }
         .minOrNull() ?: lines.size
@@ -74,18 +80,16 @@ fun parseRecipeText(text: String): ParsedRecipe? {
         .joinToString("\n")
         .trim()
 
-    // Tagi — wiersz "Tags: TAG1, TAG2, ..."
     val tags: List<RecipeTag> = if (tagsIdx >= 0) {
         val tagsPart = lines[tagsIdx].trim().removePrefix("Tags:").trim()
         tagsPart.split(",")
             .map { it.trim() }
             .filter { it.isNotBlank() }
-            .mapNotNull { name ->
-                runCatching { RecipeTag.valueOf(name) }.getOrNull()
+            .mapNotNull { textLabel ->
+                RecipeTag.entries.find { it.label.equals(textLabel, ignoreCase = true) }
             }
     } else emptyList()
 
-    // Składniki
     val ingredients: List<String> = if (ingredientsIdx >= 0) {
         val end = if (preparationIdx > ingredientsIdx) preparationIdx else lines.size
         lines.subList(ingredientsIdx + 1, end)
@@ -93,7 +97,6 @@ fun parseRecipeText(text: String): ParsedRecipe? {
             .filter { it.isNotBlank() }
     } else emptyList()
 
-    // Kroki
     val steps: String = if (preparationIdx >= 0) {
         lines.subList(preparationIdx + 1, lines.size)
             .joinToString("\n")

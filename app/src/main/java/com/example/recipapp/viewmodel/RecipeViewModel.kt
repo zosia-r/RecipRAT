@@ -61,8 +61,6 @@ class RecipeViewModel(
                     val tagsByCategory: Map<TagCategory, List<RecipeTag>> = tags.groupBy { it.category }
                     results = results.filter { recipeWithDetails ->
                         val recipeTags = recipeWithDetails.recipe.tags
-                            .mapNotNull { name -> runCatching { RecipeTag.valueOf(name) }.getOrNull() }
-                            .toSet()
                         tagsByCategory.all { (_, tagsInCategory) ->
                             tagsInCategory.any { it in recipeTags }
                         }
@@ -111,7 +109,7 @@ class RecipeViewModel(
                 title                = title,
                 description          = description,
                 executionDescription = executionDescription,
-                tags                 = tags.map { it.name }
+                tags                 = tags
             )
             val ingredientEntities = ingredients
                 .filter { it.isNotBlank() }
@@ -140,7 +138,7 @@ class RecipeViewModel(
                 .filter { it.isNotBlank() }
                 .map { IngredientEntity(recipeId = recipe.id, name = it, amount = "") }
             repository.updateRecipe(
-                recipe.copy(tags = tags.map { it.name }),
+                recipe.copy(tags = tags),
                 ingredientEntities,
                 newPhotoEntities,
                 removedPhotoPaths
