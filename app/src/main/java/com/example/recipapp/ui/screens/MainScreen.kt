@@ -28,6 +28,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -45,8 +46,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -62,7 +65,7 @@ import com.example.recipapp.ui.theme.DeepTealLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -73,11 +76,11 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Import     : Screen("import",     "Import",     Icons.Filled.Add)
     object Detail : Screen("detail/{recipeId}", "Detail", Icons.Filled.Favorite) {
         fun createRoute(id: Long) = "detail/$id"
-        const val routeWithArgs = "detail/{recipeId}"
+        const val ROUTE_WITH_ARGS = "detail/{recipeId}"
     }
     object Edit : Screen("edit/{recipeId}", "Edit", Icons.Filled.Edit) {
         fun createRoute(id: Long) = "edit/$id"
-        const val routeWithArgs = "edit/{recipeId}"
+        const val ROUTE_WITH_ARGS = "edit/{recipeId}"
     }
     object PhotoViewer : Screen("photo", "Photo", Icons.Filled.Favorite)
 }
@@ -85,10 +88,10 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    pendingRecipeId: StateFlow<Long?> = MutableStateFlow(null)
+    pendingRecipeId: StateFlow<Long?>
 ) {
-    val app = androidx.compose.ui.platform.LocalContext.current
-        .applicationContext as Recipapp
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val app = context.applicationContext as Recipapp
 
     val recipeViewModel: RecipeViewModel = viewModel(
         factory = RecipeViewModelFactory(app, app.repository)
@@ -97,7 +100,8 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
-    val showNavBar = currentRoute != Screen.PhotoViewer.route
+    // Optymalizacja UX: Ukrywamy pasek nawigacji również na ekranach szczegółów, edycji oraz przeglądarki zdjęć
+    val showNavBar = currentRoute == Screen.Favourites.route || currentRoute == Screen.Search.route
 
     // ── Deep link z powiadomienia timera ─────────────────────────────────────
     val pendingId by pendingRecipeId.collectAsState()
@@ -109,178 +113,39 @@ fun MainScreen(
         MainActivity.clearPendingRecipeId()
     }
 
-    // ── Bottom sheet „dodaj / importuj" ──────────────────────────────────────
+    // ── Bottom sheet stan i zasięg ───────────────────────────────────────────
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showAddSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun navigateToTab(route: String) {
-        navController.navigate(route) {
-            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-            launchSingleTop = true
-            restoreState    = true
-        }
-    }
-
-    if (showAddSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false },
-            sheetState       = sheetState,
-            shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            containerColor   = MaterialTheme.colorScheme.background
-        ) {
-            Column(
-                modifier            = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Add recipe",
-                    style    = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                Button(
-                    onClick = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            navController.navigate(Screen.New.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState    = true
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape  = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = DeepTeal,
-                        contentColor   = MintCream
-                    )
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Create new recipe", style = MaterialTheme.typography.labelLarge)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            navController.navigate(Screen.Import.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState    = true
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape  = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
-                    border = ButtonDefaults.outlinedButtonBorder(enabled = true)
-                        .copy(brush = androidx.compose.ui.graphics.SolidColor(DeepTeal))
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Import from text", style = MaterialTheme.typography.labelLarge)
-                }
+    // Stabilne referencje nawigacyjne zapobiegające niepotrzebnym rekompozycjom paska
+    val onNavigateToTab = remember(navController) {
+        { route: String ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState    = true
             }
         }
     }
 
+    // Odizolowany komponent dolnego arkusza (zoptymalizowany pod kątem recompose)
+    AddRecipeBottomSheet(
+        showSheet    = showAddSheet,
+        sheetState   = sheetState,
+        scope        = scope,
+        navController = navController,
+        onDismiss    = { showAddSheet = false }
+    )
+
     Scaffold(
         bottomBar = {
             if (showNavBar) {
-                val currentDestination = navBackStackEntry?.destination
-
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
-                ) {
-                    val favSelected = currentDestination?.hierarchy
-                        ?.any { it.route == Screen.Favourites.route } == true
-
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                Screen.Favourites.icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label    = { Text(Screen.Favourites.label, style = MaterialTheme.typography.labelSmall) },
-                        selected = favSelected,
-                        onClick  = { navigateToTab(Screen.Favourites.route) },
-                        colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor   = CherryRose,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            selectedTextColor   = CherryRose,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            indicatorColor      = CherryRoseLight
-                        )
-                    )
-
-                    NavigationBarItem(
-                        icon = {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .shadow(8.dp, CircleShape)
-                                    .clip(CircleShape)
-                                    .background(DeepTeal)
-                            ) {
-                                Icon(
-                                    Screen.New.icon,
-                                    contentDescription = null,
-                                    tint     = MintCream,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                        },
-                        label    = {
-                            Text(
-                                "New",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        selected = false,
-                        onClick  = { showAddSheet = true },
-                        colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor   = androidx.compose.ui.graphics.Color.Transparent,
-                            unselectedIconColor = androidx.compose.ui.graphics.Color.Transparent,
-                            indicatorColor      = androidx.compose.ui.graphics.Color.Transparent
-                        )
-                    )
-
-                    val searchSelected = currentDestination?.hierarchy
-                        ?.any { it.route == Screen.Search.route } == true
-
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                Screen.Search.icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label    = { Text(Screen.Search.label, style = MaterialTheme.typography.labelSmall) },
-                        selected = searchSelected,
-                        onClick  = { navigateToTab(Screen.Search.route) },
-                        colors   = NavigationBarItemDefaults.colors(
-                            selectedIconColor   = DeepTeal,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            selectedTextColor   = DeepTeal,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            indicatorColor      = DeepTealLight
-                        )
-                    )
-                }
+                MainNavigationBar(
+                    currentDestination = navBackStackEntry?.destination,
+                    onTabClick         = onNavigateToTab,
+                    onNewClick         = { showAddSheet = true }
+                )
             }
         }
     ) { innerPadding ->
@@ -296,13 +161,17 @@ fun MainScreen(
                 )
             }
             composable(Screen.New.route) {
-                NewRecipeScreen(
+                RecipeFormScreen(
+                    recipeId       = null,
+                    isImport       = false, // Zwykły pusty formularz
                     viewModel      = recipeViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Import.route) {
-                ImportRecipeScreen(
+                RecipeFormScreen(
+                    recipeId       = null,
+                    isImport       = true, // Formularz z wbudowanym ekranem parsowania tekstu na starcie!
                     viewModel      = recipeViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -314,7 +183,7 @@ fun MainScreen(
                 )
             }
             composable(
-                route     = Screen.Detail.routeWithArgs,
+                route     = Screen.Detail.ROUTE_WITH_ARGS,
                 arguments = listOf(navArgument("recipeId") { type = NavType.LongType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getLong("recipeId") ?: return@composable
@@ -331,12 +200,13 @@ fun MainScreen(
                 )
             }
             composable(
-                route     = Screen.Edit.routeWithArgs,
+                route     = Screen.Edit.ROUTE_WITH_ARGS,
                 arguments = listOf(navArgument("recipeId") { type = NavType.LongType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getLong("recipeId") ?: return@composable
-                EditRecipeScreen(
+                RecipeFormScreen(
                     recipeId       = id,
+                    isImport       = false, // Edycja bazy danych
                     viewModel      = recipeViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -351,5 +221,181 @@ fun MainScreen(
                 )
             }
         }
+    }
+}
+
+// ── Zoptymalizowane Komponenty Pomocnicze (Sub-Composables) ───────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddRecipeBottomSheet(
+    showSheet: Boolean,
+    sheetState: SheetState,
+    scope: CoroutineScope,
+    navController: NavHostController,
+    onDismiss: () -> Unit
+) {
+    if (!showSheet) return
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState       = sheetState,
+        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor   = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Add recipe",
+                style    = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            Button(
+                onClick = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        onDismiss()
+                        navController.navigate(Screen.New.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState    = true
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape  = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DeepTeal,
+                    contentColor   = MintCream
+                )
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(10.dp))
+                Text("Create new recipe", style = MaterialTheme.typography.labelLarge)
+            }
+
+            OutlinedButton(
+                onClick = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        onDismiss()
+                        navController.navigate(Screen.Import.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState    = true
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape  = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
+                border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+                    .copy(brush = androidx.compose.ui.graphics.SolidColor(DeepTeal))
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(10.dp))
+                Text("Import from text", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MainNavigationBar(
+    currentDestination: NavDestination?,
+    onTabClick: (String) -> Unit,
+    onNewClick: () -> Unit
+) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp
+    ) {
+        val favSelected = currentDestination?.hierarchy
+            ?.any { it.route == Screen.Favourites.route } == true
+
+        NavigationBarItem(
+            icon = {
+                Icon(
+                    Screen.Favourites.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            },
+            label    = { Text(Screen.Favourites.label, style = MaterialTheme.typography.labelSmall) },
+            selected = favSelected,
+            onClick  = { onTabClick(Screen.Favourites.route) },
+            colors   = NavigationBarItemDefaults.colors(
+                selectedIconColor   = CherryRose,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                selectedTextColor   = CherryRose,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                indicatorColor      = CherryRoseLight
+            )
+        )
+
+        NavigationBarItem(
+            icon = {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .shadow(8.dp, CircleShape)
+                        .clip(CircleShape)
+                        .background(DeepTeal)
+                ) {
+                    Icon(
+                        Screen.New.icon,
+                        contentDescription = null,
+                        tint     = MintCream,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            },
+            label    = {
+                Text(
+                    "New",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            selected = false,
+            onClick  = onNewClick,
+            colors   = NavigationBarItemDefaults.colors(
+                selectedIconColor   = androidx.compose.ui.graphics.Color.Transparent,
+                unselectedIconColor = androidx.compose.ui.graphics.Color.Transparent,
+                indicatorColor      = androidx.compose.ui.graphics.Color.Transparent
+            )
+        )
+
+        val searchSelected = currentDestination?.hierarchy
+            ?.any { it.route == Screen.Search.route } == true
+
+        NavigationBarItem(
+            icon = {
+                Icon(
+                    Screen.Search.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            },
+            label    = { Text(Screen.Search.label, style = MaterialTheme.typography.labelSmall) },
+            selected = searchSelected,
+            onClick  = { onTabClick(Screen.Search.route) },
+            colors   = NavigationBarItemDefaults.colors(
+                selectedIconColor   = DeepTeal,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                selectedTextColor   = DeepTeal,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                indicatorColor      = DeepTealLight
+            )
+        )
     }
 }
