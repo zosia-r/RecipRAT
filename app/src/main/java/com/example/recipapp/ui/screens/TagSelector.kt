@@ -44,7 +44,7 @@ fun TagSelector(
             Text(
                 text  = category.label,
                 style = MaterialTheme.typography.labelMedium,
-                color = DustyRose
+                color = DeepTeal
             )
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
