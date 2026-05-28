@@ -17,7 +17,7 @@ import com.example.recipapp.data.entity.RecipeEntity
 
 @Database(
     entities = [RecipeEntity::class, IngredientEntity::class, PhotoEntity::class],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -35,7 +35,7 @@ abstract class RecipeDatabase : RoomDatabase() {
                     context.applicationContext,
                     RecipeDatabase::class.java,
                     "recipe_database"
-                ).build().also { INSTANCE = it }
+                ).fallbackToDestructiveMigration(dropAllTables = true).build().also { INSTANCE = it }
             }
         }
     }

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,12 +36,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.data.sharing.parseRecipeText
 import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.MintCream
+import com.example.recipapp.viewmodel.IngredientInput
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +63,9 @@ fun ImportRecipeScreen(
     var title                by remember { mutableStateOf("") }
     var description          by remember { mutableStateOf("") }
     var executionDescription by remember { mutableStateOf("") }
-    var ingredients          by remember { mutableStateOf(listOf("")) }
+
+    // Naprawione: Typ zmiennej dostosowany do IngredientInput
+    var ingredients          by remember { mutableStateOf(listOf(IngredientInput("", "", ""))) }
     var selectedTags         by remember { mutableStateOf<List<RecipeTag>>(emptyList()) }
     var titleError           by remember { mutableStateOf(false) }
 
@@ -70,7 +78,9 @@ fun ImportRecipeScreen(
         title                = result.title
         description          = result.description
         executionDescription = result.steps
-        ingredients          = result.ingredients.ifEmpty { listOf("") }
+
+        ingredients          = result.ingredients.ifEmpty { listOf(IngredientInput("", "", "")) }
+
         selectedTags         = result.tags
         parseError           = false
         parsed               = true
@@ -88,7 +98,6 @@ fun ImportRecipeScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         if (parsed) {
-                            // cofnij do kroku wklejania
                             parsed = false
                         } else {
                             onNavigateBack()
@@ -207,26 +216,66 @@ fun ImportRecipeScreen(
                 )
 
                 SectionHeader(title = "Ingredients")
+
+                // Naprawione: Przebudowano strukturę na trzy kolumny formularza (Nazwa, Ilość, Jednostka)
                 ingredients.forEachIndexed { index, ingredient ->
                     Row(
-                        verticalAlignment     = androidx.compose.ui.Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier              = Modifier.fillMaxWidth(),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         OutlinedTextField(
-                            value         = ingredient,
+                            value         = ingredient.name,
                             onValueChange = { newVal ->
-                                ingredients = ingredients.toMutableList().also { it[index] = newVal }
+                                ingredients = ingredients.toMutableList().also {
+                                    it[index] = it[index].copy(name = newVal)
+                                }
                             },
-                            label      = { Text("Ingredient ${index + 1}") },
-                            modifier   = Modifier.weight(1f),
+                            label    = { Text("Name") },
+                            modifier = Modifier.weight(1.8f),
                             singleLine = true,
-                            shape      = RoundedCornerShape(14.dp),
-                            colors     = recipeTextFieldColors()
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = recipeTextFieldColors()
                         )
+
+                        OutlinedTextField(
+                            value         = ingredient.amount,
+                            onValueChange = { newVal ->
+                                if (newVal.all { it.isDigit() || it == '.' || it == ',' }) {
+                                    ingredients = ingredients.toMutableList().also {
+                                        it[index] = it[index].copy(amount = newVal)
+                                    }
+                                }
+                            },
+                            label    = { Text("Amt") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(0.9f),
+                            singleLine = true,
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = recipeTextFieldColors()
+                        )
+
+                        OutlinedTextField(
+                            value         = ingredient.unit,
+                            onValueChange = { newVal ->
+                                ingredients = ingredients.toMutableList().also {
+                                    it[index] = it[index].copy(unit = newVal)
+                                }
+                            },
+                            label    = { Text("Unit") },
+                            modifier = Modifier.weight(0.9f),
+                            singleLine = true,
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = recipeTextFieldColors()
+                        )
+
                         if (ingredients.size > 1) {
-                            IconButton(onClick = {
-                                ingredients = ingredients.toMutableList().also { it.removeAt(index) }
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    ingredients = ingredients.toMutableList().also { it.removeAt(index) }
+                                },
+                                modifier = Modifier.size(36.dp)
+                            ) {
                                 Icon(
                                     Icons.Default.Close,
                                     contentDescription = "Remove",
@@ -237,8 +286,8 @@ fun ImportRecipeScreen(
                     }
                 }
                 TextButton(
-                    onClick  = { ingredients = ingredients + "" },
-                    modifier = Modifier.align(androidx.compose.ui.Alignment.End)
+                    onClick  = { ingredients = ingredients + IngredientInput("", "", "") },
+                    modifier = Modifier.align(Alignment.End)
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -249,6 +298,7 @@ fun ImportRecipeScreen(
                     Text("Add ingredient", color = DeepTeal, style = MaterialTheme.typography.labelLarge)
                 }
 
+                // ── Instrukcja ────────────────────────────────────────────────
                 SectionHeader(title = "How to make it")
                 OutlinedTextField(
                     value         = executionDescription,

@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -43,10 +45,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.RecipeTag
 import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.MintCream
+import com.example.recipapp.util.formatIngredientAmount
+import com.example.recipapp.viewmodel.IngredientInput
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,18 +72,30 @@ fun EditRecipeScreen(
 
     val recipe = recipeWithDetails!!.recipe
 
-    var title                by remember { mutableStateOf(recipe.title) }
-    var description          by remember { mutableStateOf(recipe.description) }
-    var executionDescription by remember { mutableStateOf(recipe.executionDescription) }
-    var ingredients          by remember {
-        mutableStateOf(recipeWithDetails!!.ingredients.map { it.name }.ifEmpty { listOf("") })
+    // Naprawione klucze remember(recipe.id) – dane edycji załadują się poprawnie po odczycie z bazy danych
+    var title                by remember(recipe.id) { mutableStateOf(recipe.title) }
+    var description          by remember(recipe.id) { mutableStateOf(recipe.description) }
+    var executionDescription by remember(recipe.id) { mutableStateOf(recipe.executionDescription) }
+
+    // Mapujemy encje bazodanowe na obiekty wejściowe dla interfejsu (zamiana Double? i String? na tekst)
+    var ingredients          by remember(recipe.id) {
+        mutableStateOf(
+            recipeWithDetails!!.ingredients.map { entity ->
+                IngredientInput(
+                    name = entity.name,
+                    amount = formatIngredientAmount(entity.amount),
+                    unit = entity.unit ?: ""
+                )
+            }.ifEmpty { listOf(IngredientInput("", "", "")) }
+        )
     }
-    var existingPhotoPaths by remember {
+
+    var existingPhotoPaths by remember(recipe.id) {
         mutableStateOf(recipeWithDetails!!.photos.map { it.uri })
     }
     var newPhotoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    var selectedTags by remember {
+    var selectedTags by remember(recipe.id) {
         mutableStateOf(recipe.tags)
     }
 
@@ -106,7 +123,9 @@ fun EditRecipeScreen(
                     IconButton(
                         onClick = {
                             if (title.isBlank()) {
-                                return@IconButton }
+                                titleError = true // Naprawione: Informuje UI o błędzie przy zapisie z paska
+                                return@IconButton
+                            }
                             val removedPaths = recipeWithDetails!!.photos
                                 .map { it.uri }
                                 .filter { it !in existingPhotoPaths }
@@ -159,7 +178,7 @@ fun EditRecipeScreen(
                 modifier      = Modifier.fillMaxWidth(),
                 singleLine    = true,
                 textStyle     = MaterialTheme.typography.titleLarge,
-                shape         = RoundedCornerShape(16.dp),
+                shape       = RoundedCornerShape(16.dp),
                 colors        = recipeTextFieldColors()
             )
 
@@ -186,26 +205,66 @@ fun EditRecipeScreen(
 
             // ── Składniki ────────────────────────────────────────────────────
             SectionHeader(title = "Ingredients")
+
+            // Naprawione: Trzy kolumny edycyjne dostosowane do nowej logiki ilości i jednostek
             ingredients.forEachIndexed { index, ingredient ->
                 Row(
+                    modifier              = Modifier.fillMaxWidth(),
                     verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     OutlinedTextField(
-                        value         = ingredient,
+                        value         = ingredient.name,
                         onValueChange = { newVal ->
-                            ingredients = ingredients.toMutableList().also { it[index] = newVal }
+                            ingredients = ingredients.toMutableList().also {
+                                it[index] = it[index].copy(name = newVal)
+                            }
                         },
-                        label      = { Text("Ingredient ${index + 1}") },
-                        modifier   = Modifier.weight(1f),
+                        label    = { Text("Name") },
+                        modifier = Modifier.weight(1.8f),
                         singleLine = true,
-                        shape      = RoundedCornerShape(14.dp),
-                        colors     = recipeTextFieldColors()
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = recipeTextFieldColors()
                     )
+
+                    OutlinedTextField(
+                        value         = ingredient.amount,
+                        onValueChange = { newVal ->
+                            if (newVal.all { it.isDigit() || it == '.' || it == ',' }) {
+                                ingredients = ingredients.toMutableList().also {
+                                    it[index] = it[index].copy(amount = newVal)
+                                }
+                            }
+                        },
+                        label    = { Text("Amt") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(0.9f),
+                        singleLine = true,
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = recipeTextFieldColors()
+                    )
+
+                    OutlinedTextField(
+                        value         = ingredient.unit,
+                        onValueChange = { newVal ->
+                            ingredients = ingredients.toMutableList().also {
+                                it[index] = it[index].copy(unit = newVal)
+                            }
+                        },
+                        label    = { Text("Unit") },
+                        modifier = Modifier.weight(0.9f),
+                        singleLine = true,
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = recipeTextFieldColors()
+                    )
+
                     if (ingredients.size > 1) {
-                        IconButton(onClick = {
-                            ingredients = ingredients.toMutableList().also { it.removeAt(index) }
-                        }) {
+                        IconButton(
+                            onClick = {
+                                ingredients = ingredients.toMutableList().also { it.removeAt(index) }
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = "Remove",
@@ -216,7 +275,7 @@ fun EditRecipeScreen(
                 }
             }
             TextButton(
-                onClick  = { ingredients = ingredients + "" },
+                onClick  = { ingredients = ingredients + IngredientInput("", "", "") },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, tint = DeepTeal)

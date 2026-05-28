@@ -7,7 +7,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.recipapp.data.RecipeRepository
 import com.example.recipapp.data.RecipeTag
-import com.example.recipapp.data.TagCategory
 import com.example.recipapp.data.entity.IngredientEntity
 import com.example.recipapp.data.entity.PhotoEntity
 import com.example.recipapp.data.entity.RecipeEntity
@@ -21,12 +20,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.UUID
+
+// Klasa pomocnicza łącząca dane z pól tekstowych formularza w UI
+data class IngredientInput(val name: String, val amount: String, val unit: String)
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class RecipeViewModel(
@@ -48,25 +52,23 @@ class RecipeViewModel(
     private val _selectedTags = MutableStateFlow<Set<RecipeTag>>(emptySet())
     val selectedTags: StateFlow<Set<RecipeTag>> = _selectedTags.asStateFlow()
 
+    // Szybkie wyszukiwanie delegowane bezpośrednio do silnika bazy danych SQLite
     val searchResults: StateFlow<List<RecipeWithDetails>> =
-        combine(_searchQuery, _selectedTags, repository.allRecipes) { query, tags, all ->
-            Triple(query, tags, all)
-        }
+        combine(_searchQuery, _selectedTags) { query, tags -> query to tags }
             .debounce(300)
-            .map { (query, tags, all) ->
-                var results = if (query.isBlank()) all
-                else all.filter { it.recipe.title.contains(query, ignoreCase = true) }
-
-                if (tags.isNotEmpty()) {
-                    val tagsByCategory: Map<TagCategory, List<RecipeTag>> = tags.groupBy { it.category }
-                    results = results.filter { recipeWithDetails ->
-                        val recipeTags = recipeWithDetails.recipe.tags
-                        tagsByCategory.all { (_, tagsInCategory) ->
-                            tagsInCategory.any { it in recipeTags }
+            .flatMapLatest { (query, tags) ->
+                if (tags.isEmpty()) {
+                    repository.searchRecipes(query)
+                } else {
+                    // Pobieramy dane wstępnie przefiltrowane w SQL po pierwszym tagu,
+                    // a ewentualne pozostałe tagi dociskamy bezpiecznie w pamięci.
+                    val primaryTag = tags.first().name
+                    repository.searchRecipesWithTag(query, primaryTag).map { list ->
+                        list.filter { item ->
+                            tags.all { it in item.recipe.tags }
                         }
                     }
                 }
-                results
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -81,7 +83,6 @@ class RecipeViewModel(
     fun clearTagFilters() { _selectedTags.value = emptySet() }
 
     // ── Zdjęcia dla PhotoViewera ──────────────────────────────────────────────
-    // Przechowujemy listę URI tutaj – pewniejsze niż savedStateHandle przy nawigacji
 
     private val _pendingPhotoUris = MutableStateFlow<List<String>>(emptyList())
     val pendingPhotoUris: StateFlow<List<String>> = _pendingPhotoUris.asStateFlow()
@@ -100,7 +101,7 @@ class RecipeViewModel(
         title: String,
         description: String,
         executionDescription: String,
-        ingredients: List<String>,
+        ingredients: List<IngredientInput>,
         photoUris: List<Uri>,
         tags: List<RecipeTag> = emptyList()
     ) {
@@ -112,8 +113,15 @@ class RecipeViewModel(
                 tags                 = tags
             )
             val ingredientEntities = ingredients
-                .filter { it.isNotBlank() }
-                .map { IngredientEntity(recipeId = 0, name = it, amount = "") }
+                .filter { it.name.isNotBlank() }
+                .map { input ->
+                    IngredientEntity(
+                        recipeId = 0,
+                        name     = input.name,
+                        amount   = input.amount.replace(",", ".").toDoubleOrNull(),
+                        unit     = input.unit.trim().ifBlank { null }
+                    )
+                }
             val photoEntities = photoUris.map { uri ->
                 PhotoEntity(recipeId = 0, uri = copyPhotoToAppStorage(getApplication(), uri))
             }
@@ -123,7 +131,7 @@ class RecipeViewModel(
 
     fun updateRecipe(
         recipe: RecipeEntity,
-        ingredients: List<String>,
+        ingredients: List<IngredientInput>,
         newPhotoUris: List<Uri> = emptyList(),
         removedPhotoPaths: List<String> = emptyList(),
         tags: List<RecipeTag> = emptyList()
@@ -131,12 +139,20 @@ class RecipeViewModel(
         viewModelScope.launch {
             val context = getApplication<Application>()
             removedPhotoPaths.forEach { path -> File(path).takeIf { it.exists() }?.delete() }
+
             val newPhotoEntities = newPhotoUris.map { uri ->
                 PhotoEntity(recipeId = recipe.id, uri = copyPhotoToAppStorage(context, uri))
             }
             val ingredientEntities = ingredients
-                .filter { it.isNotBlank() }
-                .map { IngredientEntity(recipeId = recipe.id, name = it, amount = "") }
+                .filter { it.name.isNotBlank() }
+                .map { input ->
+                    IngredientEntity(
+                        recipeId = recipe.id,
+                        name     = input.name,
+                        amount   = input.amount.replace(",", ".").toDoubleOrNull(),
+                        unit     = input.unit.trim().ifBlank { null }
+                    )
+                }
             repository.updateRecipe(
                 recipe.copy(tags = tags),
                 ingredientEntities,
@@ -150,8 +166,15 @@ class RecipeViewModel(
         viewModelScope.launch { repository.toggleFavourite(id, !current) }
     }
 
+    // Pobiera powiązane pliki z dysku i usuwa je, zapobiegając powstawaniu śmieci w pamięci urządzenia
     fun deleteRecipe(recipe: RecipeEntity) {
-        viewModelScope.launch { repository.deleteRecipe(recipe) }
+        viewModelScope.launch {
+            val fullRecipe = repository.getRecipeById(recipe.id).first()
+            fullRecipe?.photos?.forEach { photoEntity ->
+                File(photoEntity.uri).takeIf { it.exists() }?.delete()
+            }
+            repository.deleteRecipe(recipe)
+        }
     }
 
     fun getRecipeById(id: Long): Flow<RecipeWithDetails?> = repository.getRecipeById(id)

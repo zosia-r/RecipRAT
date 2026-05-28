@@ -83,7 +83,10 @@ import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
+import com.example.recipapp.util.formatIngredientAmount
+import com.example.recipapp.util.getDisplayDetails
 import com.example.recipapp.viewmodel.RecipeViewModel
+import com.example.recipapp.viewmodel.IngredientInput
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -181,10 +184,18 @@ fun RecipeDetailScreen(
                                     leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = DeepTeal) },
                                     onClick     = {
                                         showMenu = false
+
+                                        val mappedIngredients = recipeWithDetails!!.ingredients.map { entity ->
+                                            IngredientInput(
+                                                name = entity.name,
+                                                amount = formatIngredientAmount(entity.amount),
+                                                unit = entity.unit ?: ""
+                                            )
+                                        }
                                         val text = buildShareText(
                                             title       = r.title,
                                             description = r.description,
-                                            ingredients = recipeWithDetails!!.ingredients.map { it.name },
+                                            ingredients = mappedIngredients,
                                             steps       = r.executionDescription,
                                             tags        = r.tags
                                         )
@@ -337,6 +348,7 @@ fun RecipeDetailScreen(
                                         checkmarkColor = MintCream
                                     )
                                 )
+
                                 Text(
                                     text     = ingredient.name,
                                     style    = MaterialTheme.typography.bodyMedium.copy(
@@ -347,16 +359,27 @@ fun RecipeDetailScreen(
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     else
                                         MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f) // Wpycha ilość i jednostkę do prawej krawędzi
                                 )
-                                if (ingredient.amount.isNotBlank()) {
+
+                                val displayDetails = ingredient.getDisplayDetails()
+
+                                if (displayDetails.isNotEmpty()) {
                                     Text(
-                                        ingredient.amount,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = DeepTeal
+                                        text  = displayDetails,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            textDecoration = if (isChecked) TextDecoration.LineThrough
+                                            else TextDecoration.None
+                                        ),
+                                        color = if (isChecked)
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        else
+                                            DeepTeal,
+                                        modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
                             }
+
                             if (index < ingredients.lastIndex) {
                                 HorizontalDivider(
                                     modifier  = Modifier.padding(vertical = 2.dp),
@@ -364,6 +387,7 @@ fun RecipeDetailScreen(
                                 )
                             }
                         }
+
                         if (checkedIngredients.values.any { it }) {
                             TextButton(
                                 onClick  = { checkedIngredients.clear() },
@@ -374,7 +398,6 @@ fun RecipeDetailScreen(
                         }
                     }
                 }
-
                 // ── Sposób wykonania ──────────────────────────────────────────
                 if (recipe?.executionDescription?.isNotBlank() == true) {
                     DetailSectionCard(title = "Instructions") {

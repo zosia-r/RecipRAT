@@ -20,5 +20,6 @@ data class IngredientEntity(
     val id: Long = 0,
     val recipeId: Long,
     val name: String,
-    val amount: String
+    val amount: Double?,
+    val unit: String?
 )

@@ -1,6 +1,7 @@
 package com.example.recipapp.data.sharing
 
 import com.example.recipapp.data.RecipeTag
+import com.example.recipapp.viewmodel.IngredientInput
 
 /**
  * Module for parsing and building share text.
@@ -9,24 +10,27 @@ import com.example.recipapp.data.RecipeTag
 
 
 /**
- Format:
-   🍴 <title>
-   <empty line>
-   <description>          (optional)
-   <empty line>
-   Tags: 🍳 Breakfast, 🍬 Sweet       (opcjonalne)
-   <empty line>
-   Ingredients:
-   • ingredient 1
-   <empty line>
-   Preparation:
-   <steps>
+Format:
+🍴 <title>
+<empty line>
+<description>          (optional)
+<empty line>
+Tags: 🍳 Breakfast, 🍬 Sweet       (opcjonalne)
+<empty line>
+Ingredients:
+• Mąka (250 g)
+• Sól (szczypta)
+• Jajka (4 szt)
+• Oliwa
+<empty line>
+Preparation:
+<steps>
  **/
 
 data class ParsedRecipe(
     val title: String,
     val description: String,
-    val ingredients: List<String>,
+    val ingredients: List<IngredientInput>,
     val steps: String,
     val tags: List<RecipeTag>
 )
@@ -34,7 +38,7 @@ data class ParsedRecipe(
 fun buildShareText(
     title: String,
     description: String,
-    ingredients: List<String>,
+    ingredients: List<IngredientInput>,
     steps: String,
     tags: List<RecipeTag> = emptyList()
 ): String = buildString {
@@ -49,7 +53,14 @@ fun buildShareText(
     if (ingredients.isNotEmpty()) {
         appendLine()
         appendLine("Ingredients:")
-        ingredients.forEach { appendLine("• $it") }
+        ingredients.forEach { ing ->
+            if (ing.amount.isNotBlank() || ing.unit.isNotBlank()) {
+                val details = "${ing.amount} ${ing.unit}".trim()
+                appendLine("• ${ing.name} ($details)")
+            } else {
+                appendLine("• ${ing.name}")
+            }
+        }
     }
     if (steps.isNotBlank()) {
         appendLine()
@@ -90,11 +101,35 @@ fun parseRecipeText(text: String): ParsedRecipe? {
             }
     } else emptyList()
 
-    val ingredients: List<String> = if (ingredientsIdx >= 0) {
+    val ingredients: List<IngredientInput> = if (ingredientsIdx >= 0) {
         val end = if (preparationIdx > ingredientsIdx) preparationIdx else lines.size
         lines.subList(ingredientsIdx + 1, end)
             .map { it.trim().removePrefix("•").trim() }
             .filter { it.isNotBlank() }
+            .map { line ->
+                val lastCloseParenthesis = line.lastIndexOf(')')
+                if (lastCloseParenthesis == line.length - 1) {
+                    val lastOpenParenthesis = line.lastIndexOf('(')
+                    if (lastOpenParenthesis != -1 && lastOpenParenthesis < lastCloseParenthesis) {
+                        val name = line.substring(0, lastOpenParenthesis).trim()
+                        val details = line.substring(lastOpenParenthesis + 1, lastCloseParenthesis).trim()
+
+                        val detailsParts = details.split(Regex("""\s+"""), 2)
+                        val amount = detailsParts.getOrNull(0) ?: ""
+                        val unit = detailsParts.getOrNull(1) ?: ""
+
+                        if (amount.all { it.isDigit() || it == '.' || it == ',' }) {
+                            IngredientInput(name = name, amount = amount, unit = unit)
+                        } else {
+                            IngredientInput(name = name, amount = "", unit = details)
+                        }
+                    } else {
+                        IngredientInput(name = line, amount = "", unit = "")
+                    }
+                } else {
+                    IngredientInput(name = line, amount = "", unit = "")
+                }
+            }
     } else emptyList()
 
     val steps: String = if (preparationIdx >= 0) {
