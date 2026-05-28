@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,8 +38,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.recipapp.ui.theme.MintCream
+import kotlinx.coroutines.launch
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PhotoViewerScreen(
     initialIndex: Int,
@@ -65,7 +66,11 @@ fun PhotoViewerScreen(
             state    = pagerState,
             modifier = Modifier.fillMaxSize()
         ) { page ->
-            ZoomableImage(uri = allUris[page])
+            // Przekazujemy stan aktywności strony, by poprawnie resetować powiększenie
+            ZoomableImage(
+                uri = allUris[page],
+                isCurrentPage = page == pagerState.currentPage
+            )
         }
 
         // ── Przycisk wstecz ───────────────────────────────────────────────
@@ -101,15 +106,17 @@ fun PhotoViewerScreen(
 }
 
 @Composable
-private fun ZoomableImage(uri: String) {
+private fun ZoomableImage(uri: String, isCurrentPage: Boolean) {
     var scale   by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(uri) {
-        scale   = 1f
-        offsetX = 0f
-        offsetY = 0f
+    LaunchedEffect(isCurrentPage) {
+        if (!isCurrentPage) {
+            scale   = 1f
+            offsetX = 0f
+            offsetY = 0f
+        }
     }
 
     Box(
@@ -117,38 +124,41 @@ private fun ZoomableImage(uri: String) {
             .fillMaxSize()
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    // Czekaj na pierwsze dotknięcie
-                    awaitFirstDown(requireUnconsumed = false)
-
-                    var zoom        = 1f
-                    var panX        = 0f
-                    var panY        = 0f
-
+                    awaitFirstDown()
                     do {
                         val event = awaitPointerEvent()
-                        val zoomChange = event.calculateZoom()
-                        val panChange  = event.calculatePan()
+                        val zoom = event.calculateZoom()
+                        val pan = event.calculatePan()
 
-                        zoom = zoomChange
-                        panX = panChange.x
-                        panY = panChange.y
+                        val newScale = (scale * zoom).coerceIn(1f, 4f)
 
-                        val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                        val maxOffsetX = (size.width  * (newScale - 1f)) / 2f
+                        val maxOffsetY = (size.height * (newScale - 1f)) / 2f
 
-                        // Jeśli zoom > 1 już jest aktywny, konsumuj gesty
-                        if (scale > 1f || zoomChange != 1f) {
-                            scale = newScale
-                            if (scale <= 1f) {
-                                scale = 1f; offsetX = 0f; offsetY = 0f
-                            } else {
-                                offsetX += panChange.x
-                                offsetY += panChange.y
+                        val atLeftEdge = offsetX >= maxOffsetX
+                        val atRightEdge = offsetX <= -maxOffsetX
+
+                        val draggingRight = pan.x > 0
+                        val draggingLeft = pan.x < 0
+
+                        val atHorizontalEdge = (atLeftEdge && draggingRight) || (atRightEdge && draggingLeft)
+
+                        scale = newScale
+                        offsetX = (offsetX + pan.x).coerceIn(-maxOffsetX, maxOffsetX)
+                        offsetY = (offsetY + pan.y).coerceIn(-maxOffsetY, maxOffsetY)
+
+                        if (scale > 1f) {
+                            if (event.changes.size > 1 || !atHorizontalEdge) {
+                                event.changes.forEach {
+                                    if (it.positionChanged()) {
+                                        it.consume()
+                                    }
+                                }
                             }
-                            // Konsumuj tylko gdy zoomujemy — pager nie dostanie tych zdarzeń
-                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        } else {
+                            offsetX = 0f
+                            offsetY = 0f
                         }
-                        // Gdy scale == 1f i ruch jest poziomy — NIE konsumujemy,
-                        // żeby HorizontalPager mógł obsłużyć swipe
                     } while (event.changes.any { it.pressed })
                 }
             },
@@ -160,12 +170,12 @@ private fun ZoomableImage(uri: String) {
             contentScale       = ContentScale.Fit,
             modifier           = Modifier
                 .fillMaxSize()
-                .graphicsLayer(
-                    scaleX       = scale,
-                    scaleY       = scale,
-                    translationX = offsetX,
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offsetX
                     translationY = offsetY
-                )
+                }
         )
     }
 }
