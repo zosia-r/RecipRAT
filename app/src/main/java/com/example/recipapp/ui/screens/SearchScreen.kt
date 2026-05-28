@@ -36,6 +36,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -66,11 +68,12 @@ fun SearchScreen(
 ) {
     val searchQuery   by viewModel.searchQuery.collectAsState()
     val selectedTags  by viewModel.selectedTags.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
+
+    // Naprawione: Stan początkowy ustawiony na null chroni przed miganiem pustego layoutu
+    val searchResults by viewModel.searchResults.collectAsState(initial = null)
 
     var showFilters by remember { mutableStateOf(false) }
 
-    // ── Optymalizacja Wydajności: Stabilne referencje dla akcji LazyColumn i Tagów ──
     val onToggleFavouriteStable = remember(viewModel) {
         { id: Long, currentFav: Boolean -> viewModel.toggleFavourite(id, currentFav) }
     }
@@ -81,7 +84,6 @@ fun SearchScreen(
         { tag: RecipeTag -> viewModel.onTagToggled(tag) }
     }
 
-    // Naprawione: Zastąpienie Scaffold przez czysty Column (likwidacja pustych paddingów)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -290,63 +292,77 @@ fun SearchScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── Wyniki wyszukiwania ───────────────────────────────────────────
-            if (searchResults.isEmpty()) {
-                Box(
-                    modifier       = Modifier.weight(1f).fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier            = Modifier.padding(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint     = DustyRose,
-                            modifier = Modifier.size(48.dp)
-                        )
+            // ── Wyniki wyszukiwania (Naprawione zarządzanie stanem null) ──────
+            when {
+                // STAN 1: Trwa przetwarzanie zapytania SQL lub filtru (null). Pokazujemy stabilną przestrzeń.
+                searchResults == null -> {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {}
+                }
 
-                        if (searchQuery.isBlank() && selectedTags.isEmpty()) {
-                            Text(
-                                text  = "No recipes yet",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onBackground
+                // STAN 2: Zapytanie zwróciło pustą kolekcję.
+                searchResults!!.isEmpty() -> {
+                    Box(
+                        modifier       = Modifier.weight(1f).fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier            = Modifier.padding(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint     = DustyRose,
+                                modifier = Modifier.size(48.dp)
                             )
-                            Text(
-                                text      = "Add your first recipe!",
-                                style     = MaterialTheme.typography.bodyMedium,
-                                color     = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        } else {
-                            Text(
-                                text      = "No recipes found\nmatching your search",
-                                style     = MaterialTheme.typography.bodyLarge,
-                                color     = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
+
+                            if (searchQuery.isBlank() && selectedTags.isEmpty()) {
+                                Text(
+                                    text  = "No recipes yet",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text      = "Add your first recipe!",
+                                    style     = MaterialTheme.typography.bodyMedium,
+                                    color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            } else {
+                                Text(
+                                    text      = "No recipes found\nmatching your search",
+                                    style     = MaterialTheme.typography.bodyLarge,
+                                    color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
-            } else {
-                LazyColumn(
-                    modifier            = Modifier.weight(1f).fillMaxSize(),
-                    contentPadding      = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(searchResults, key = { it.recipe.id }) { recipeWithDetails ->
-                        RecipeCard(
-                            recipeWithDetails = recipeWithDetails,
-                            onToggleFavourite = {
-                                onToggleFavouriteStable(
-                                    recipeWithDetails.recipe.id,
-                                    recipeWithDetails.recipe.isFavourite
-                                )
-                            },
-                            onClick = { onRecipeClickStable(recipeWithDetails.recipe.id) }
-                        )
+
+                // STAN 3: Wyniki są obecne i poprawne.
+                else -> {
+                    LazyColumn(
+                        modifier            = Modifier.weight(1f).fillMaxSize(),
+                        contentPadding      = PaddingValues(bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(searchResults!!, key = { it.recipe.id }) { recipeWithDetails ->
+                            RecipeCard(
+                                recipeWithDetails = recipeWithDetails,
+                                onToggleFavourite = {
+                                    onToggleFavouriteStable(
+                                        recipeWithDetails.recipe.id,
+                                        recipeWithDetails.recipe.isFavourite
+                                    )
+                                },
+                                onClick = { onRecipeClickStable(recipeWithDetails.recipe.id) }
+                            )
+                        }
                     }
                 }
             }

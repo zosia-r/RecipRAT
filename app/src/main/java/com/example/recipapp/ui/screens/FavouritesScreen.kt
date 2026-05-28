@@ -37,9 +37,9 @@ fun FavouritesScreen(
     viewModel: RecipeViewModel,
     onRecipeClick: (Long) -> Unit
 ) {
-    val recipes by viewModel.favouriteRecipes.collectAsState()
+    // Naprawione: Stan początkowy to null. Zapobiega to domyślnemu renderowaniu pustego ekranu zanim Room zwróci dane.
+    val recipes by viewModel.favouriteRecipes.collectAsState(initial = null)
 
-    // Optymalizacja wydajności: Zapamiętujemy lambdy, aby obiekty RecipeCard nie recomponowały się bezcelowo podczas przewijania
     val onToggleFavouriteStable = remember(viewModel) {
         { id: Long, currentFav: Boolean ->
             viewModel.toggleFavourite(id, currentFav)
@@ -52,7 +52,6 @@ fun FavouritesScreen(
         }
     }
 
-    // Naprawione: Zamiast Scaffold używamy czystej struktury Column, co eliminuje konflikty paddingów dolnego paska nawigacji
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,52 +81,69 @@ fun FavouritesScreen(
             )
         )
 
-        if (recipes.isEmpty()) {
-            Box(
-                modifier       = Modifier.weight(1f).fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier            = Modifier.padding(32.dp)
+        // Naprawione: Blok when precyzyjnie rozróżnia ładowanie, pustą bazę oraz listę gotową do wyświetlenia
+        when {
+            // STAN 1: Dane są w drodze z bazy Room (null). Pokazujemy czysty kontener - brak efektu migania layoutu.
+            recipes == null -> {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint     = DustyRose,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(
-                        text  = "No favourites yet",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text      = "Tap the heart on any recipe\nto save it here",
-                        style     = MaterialTheme.typography.bodyMedium,
-                        color     = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    // Można tu opcjonalnie wstawić CircularProgressIndicator(color = DeepTeal)
                 }
             }
-        } else {
-            LazyColumn(
-                modifier            = Modifier.weight(1f).fillMaxSize(),
-                contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(recipes, key = { it.recipe.id }) { recipeWithDetails ->
-                    RecipeCard(
-                        recipeWithDetails = recipeWithDetails,
-                        onToggleFavourite = {
-                            onToggleFavouriteStable(
-                                recipeWithDetails.recipe.id,
-                                recipeWithDetails.recipe.isFavourite
-                            )
-                        },
-                        onClick = { onRecipeClickStable(recipeWithDetails.recipe.id) }
-                    )
+
+            // STAN 2: Dane dotarły i lista jest faktycznie pusta.
+            recipes!!.isEmpty() -> {
+                Box(
+                    modifier       = Modifier.weight(1f).fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier            = Modifier.padding(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint     = DustyRose,
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Text(
+                            text  = "No favourites yet",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text      = "Tap the heart on any recipe\nto save it here",
+                            style     = MaterialTheme.typography.bodyMedium,
+                            color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            // STAN 3: Dane załadowane pomyślnie. Renderujemy listę.
+            else -> {
+                LazyColumn(
+                    modifier            = Modifier.weight(1f).fillMaxSize(),
+                    contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(recipes!!, key = { it.recipe.id }) { recipeWithDetails ->
+                        RecipeCard(
+                            recipeWithDetails = recipeWithDetails,
+                            onToggleFavourite = {
+                                onToggleFavouriteStable(
+                                    recipeWithDetails.recipe.id,
+                                    recipeWithDetails.recipe.isFavourite
+                                )
+                            },
+                            onClick = { onRecipeClickStable(recipeWithDetails.recipe.id) }
+                        )
+                    }
                 }
             }
         }

@@ -41,8 +41,11 @@ class RecipeViewModel(
     val allRecipes: StateFlow<List<RecipeWithDetails>> = repository.allRecipes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val favouriteRecipes: StateFlow<List<RecipeWithDetails>> = repository.favouriteRecipes
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val favouriteRecipes: StateFlow<List<RecipeWithDetails>?> = repository.favouriteRecipes
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            null)
 
     // ── Wyszukiwanie ─────────────────────────────────────────────────────────
 
@@ -53,15 +56,14 @@ class RecipeViewModel(
     val selectedTags: StateFlow<Set<RecipeTag>> = _selectedTags.asStateFlow()
 
     // Szybkie wyszukiwanie delegowane bezpośrednio do silnika bazy danych SQLite
-    val searchResults: StateFlow<List<RecipeWithDetails>> =
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val searchResults: StateFlow<List<RecipeWithDetails>?> =
         combine(_searchQuery, _selectedTags) { query, tags -> query to tags }
             .debounce(300)
             .flatMapLatest { (query, tags) ->
                 if (tags.isEmpty()) {
                     repository.searchRecipes(query)
                 } else {
-                    // Pobieramy dane wstępnie przefiltrowane w SQL po pierwszym tagu,
-                    // a ewentualne pozostałe tagi dociskamy bezpiecznie w pamięci.
                     val primaryTag = tags.first().name
                     repository.searchRecipesWithTag(query, primaryTag).map { list ->
                         list.filter { item ->
@@ -70,8 +72,12 @@ class RecipeViewModel(
                     }
                 }
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
+            // Naprawione: Zmieniono typ strumienia na nullable i wstawiono null jako initialValue
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
     fun onSearchQueryChange(query: String) { _searchQuery.value = query }
 
     fun onTagToggled(tag: RecipeTag) {
