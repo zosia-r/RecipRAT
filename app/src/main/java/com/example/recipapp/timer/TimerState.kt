@@ -1,11 +1,10 @@
 package com.example.recipapp.timer
 
 /**
- * Stan timera dla jednego przepisu.
+ * Timer state for a single recipe.
  */
 sealed class TimerState {
 
-    /** Timer odlicza */
     data class Running(
         val recipeId: Long,
         val recipeTitle: String,
@@ -13,7 +12,6 @@ sealed class TimerState {
         val remainingSec: Int
     ) : TimerState()
 
-    /** Timer skończył – alarm dzwoni */
     data class Finished(
         val recipeId: Long,
         val recipeTitle: String

@@ -31,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.recipapp.MainActivity
 import com.example.recipapp.Recipapp
 import com.example.recipapp.ui.theme.CherryRose
 import com.example.recipapp.ui.theme.CherryRoseLight
@@ -60,6 +62,8 @@ import com.example.recipapp.ui.theme.DeepTealLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -80,7 +84,9 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    pendingRecipeId: StateFlow<Long?> = MutableStateFlow(null)
+) {
     val app = androidx.compose.ui.platform.LocalContext.current
         .applicationContext as Recipapp
 
@@ -92,6 +98,16 @@ fun MainScreen() {
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
     val showNavBar = currentRoute != Screen.PhotoViewer.route
+
+    // ── Deep link z powiadomienia timera ─────────────────────────────────────
+    val pendingId by pendingRecipeId.collectAsState()
+    LaunchedEffect(pendingId) {
+        val id = pendingId ?: return@LaunchedEffect
+        navController.navigate(Screen.Detail.createRoute(id)) {
+            launchSingleTop = true
+        }
+        MainActivity.clearPendingRecipeId()
+    }
 
     // ── Bottom sheet „dodaj / importuj" ──────────────────────────────────────
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -126,7 +142,6 @@ fun MainScreen() {
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                // ── Nowy ręcznie ──────────────────────────────────────────────
                 Button(
                     onClick = {
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
@@ -151,7 +166,6 @@ fun MainScreen() {
                     Text("Create new recipe", style = MaterialTheme.typography.labelLarge)
                 }
 
-                // ── Import ────────────────────────────────────────────────────
                 OutlinedButton(
                     onClick = {
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
@@ -170,7 +184,6 @@ fun MainScreen() {
                     border = ButtonDefaults.outlinedButtonBorder(enabled = true)
                         .copy(brush = androidx.compose.ui.graphics.SolidColor(DeepTeal))
                 ) {
-                    // ikona „wklej" złożona z dostępnych ikon Material
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.width(10.dp))
                     Text("Import from text", style = MaterialTheme.typography.labelLarge)
@@ -188,7 +201,6 @@ fun MainScreen() {
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
                 ) {
-                    // ── Ulubione ──────────────────────────────────────────────
                     val favSelected = currentDestination?.hierarchy
                         ?.any { it.route == Screen.Favourites.route } == true
 
@@ -212,7 +224,6 @@ fun MainScreen() {
                         )
                     )
 
-                    // ── Przycisk + — otwiera sheet ────────────────────────────
                     NavigationBarItem(
                         icon = {
                             Box(
@@ -247,7 +258,6 @@ fun MainScreen() {
                         )
                     )
 
-                    // ── Szukaj ────────────────────────────────────────────────
                     val searchSelected = currentDestination?.hierarchy
                         ?.any { it.route == Screen.Search.route } == true
 
