@@ -20,6 +20,10 @@ import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
 
+/**
+ * Composable for displaying a list of tags grouped by category.
+ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagSelector(
@@ -27,13 +31,10 @@ fun TagSelector(
     onTagToggle: (RecipeTag) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Optymalizacja pamięci: Mapujemy i grupujemy tagi według kategorii tylko RAZ.
-    // Zapobiega to ciągłemu filtrowaniu kolekcji przy każdym wpisaniu znaku w formularzu.
     val tagsByCategory = remember {
         RecipeTag.entries.groupBy { it.category }
     }
 
-    // Stabilna referencja wywołania zwrotnego kliknięcia
     val onTagToggleStable = remember(onTagToggle) { onTagToggle }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -43,11 +44,10 @@ fun TagSelector(
             Text(
                 text  = category.label,
                 style = MaterialTheme.typography.labelMedium,
-                color = DeepTeal
+                color = MaterialTheme.colorScheme.primary
             )
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Naprawione: Dodano unikalny klucz klienta (it.name) dla optymalizacji LazyRow
                 items(tagsInCategory, key = { it.name }) { tag ->
                     val selected = tag in selectedTags
                     FilterChip(
@@ -61,15 +61,15 @@ fun TagSelector(
                         },
                         shape  = RoundedCornerShape(50),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor   = DeepTeal,
-                            selectedLabelColor       = MintCream,
-                            containerColor           = DustyRoseLight,
+                            selectedContainerColor   = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor       = MaterialTheme.colorScheme.onPrimary,
+                            containerColor           = MaterialTheme.colorScheme.secondaryContainer,
                             labelColor               = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled             = true,
                             selected            = selected,
-                            selectedBorderColor = DeepTeal,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary,
                             borderColor         = MaterialTheme.colorScheme.outline
                         )
                     )
