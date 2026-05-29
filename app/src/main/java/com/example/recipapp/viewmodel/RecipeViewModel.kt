@@ -6,10 +6,10 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.recipapp.data.RecipeRepository
-import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.data.entity.IngredientEntity
 import com.example.recipapp.data.entity.PhotoEntity
 import com.example.recipapp.data.entity.RecipeEntity
+import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.data.relation.RecipeWithDetails
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -20,8 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update

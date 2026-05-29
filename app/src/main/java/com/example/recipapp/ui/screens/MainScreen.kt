@@ -29,11 +29,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.recipapp.MainActivity
 import com.example.recipapp.Recipapp
+import com.example.recipapp.ui.components.AddRecipeBottomSheet
+import com.example.recipapp.ui.components.MainNavigationBar
 import com.example.recipapp.viewmodel.RecipeViewModel
 import com.example.recipapp.viewmodel.RecipeViewModelFactory
 import kotlinx.coroutines.flow.StateFlow
-import com.example.recipapp.ui.components.AddRecipeBottomSheet
-import com.example.recipapp.ui.components.MainNavigationBar
 
 
 /**
