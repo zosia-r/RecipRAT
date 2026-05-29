@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.example.recipapp.util.formatIngredientAmount
 
 @Entity(
     tableName = "ingredients",
@@ -23,3 +24,14 @@ data class IngredientEntity(
     val amount: Double?,
     val unit: String?
 )
+
+
+// Extension function - formats ingredient details to a string.
+fun IngredientEntity.getDisplayDetails(scale: Float = 1f): String {
+    val baseAmount = this.amount
+    val scaledAmount = if (baseAmount != null) baseAmount * scale else null
+
+    val amountText = formatIngredientAmount(scaledAmount)
+    val unitText = this.unit ?: ""
+    return "$amountText $unitText".trim()
+}
