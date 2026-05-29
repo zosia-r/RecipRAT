@@ -56,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.entity.RecipeTag
+import com.example.recipapp.ui.components.RecipeCard
+import com.example.recipapp.ui.components.TagSelector
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 /**
@@ -238,8 +240,8 @@ fun SearchScreen(
 
                         TagSelector(
                             selectedTags = selectedTags.toList(),
-                            onTagToggle  = onTagToggledStable,
-                            modifier     = Modifier.padding(top = 4.dp)
+                            onTagToggle = onTagToggledStable,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
 
                         if (selectedTags.map { it.category }.distinct().size > 1) {

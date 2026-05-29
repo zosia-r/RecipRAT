@@ -1,4 +1,4 @@
-package com.example.recipapp.ui.screens
+package com.example.recipapp.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +30,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.relation.RecipeWithDetails
 import com.example.recipapp.ui.theme.CherryRose
-import com.example.recipapp.ui.theme.DustyRoseLight
 
 /**
  * Card for displaying a recipe.

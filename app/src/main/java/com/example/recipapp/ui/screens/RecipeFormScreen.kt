@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.sharing.parseRecipeText
+import com.example.recipapp.ui.components.TagSelector
 import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.util.formatIngredientAmount
@@ -318,7 +319,7 @@ fun RecipeFormScreen(
                 SectionHeader(title = "Tags")
                 TagSelector(
                     selectedTags = selectedTags,
-                    onTagToggle  = { tag ->
+                    onTagToggle = { tag ->
                         selectedTags = if (tag in selectedTags)
                             selectedTags - tag else selectedTags + tag
                     }
