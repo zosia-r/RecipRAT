@@ -40,14 +40,6 @@ class RecipeViewModel(
 ) : AndroidViewModel(application) {
 
     // ********** Recipe Flows **********
-    val allRecipes: StateFlow<List<RecipeWithDetails>> =
-        repository.allRecipes
-        .stateIn( // converts database Flow to stable StateFlow in RAM
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList()
-        )
-
     val favouriteRecipes: StateFlow<List<RecipeWithDetails>?> = repository.favouriteRecipes
         .stateIn(
             viewModelScope,

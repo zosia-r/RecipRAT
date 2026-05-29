@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.sharing.parseRecipeText
 import com.example.recipapp.ui.components.TagSelector
@@ -76,7 +77,7 @@ fun RecipeFormScreen(
     // Naprawione: Bezpieczne pobieranie stanu z ViewModelu. Jeśli to nie jest tryb edycji,
     // używamy słowa kluczowego remember, aby poprawnie zainicjalizować pusty stan bez alokacji w locie.
     val recipeWithDetails by if (isEditMode) {
-        viewModel.getRecipeById(recipeId!!).collectAsState(initial = null)
+        viewModel.getRecipeById(recipeId).collectAsState(initial = null)
     } else {
         remember { mutableStateOf(null) }
     }
@@ -99,7 +100,7 @@ fun RecipeFormScreen(
 
     val photoUrisSaver = listSaver<MutableState<List<Uri>>, String>(
         save = { state -> state.value.map { it.toString() } },
-        restore = { flatList -> mutableStateOf(flatList.map { Uri.parse(it) }) }
+        restore = { flatList -> mutableStateOf(flatList.map { it.toUri() }) }
     )
 
     val existingPhotoPathsSaver = listSaver<MutableState<List<String>>, String>(
@@ -140,7 +141,7 @@ fun RecipeFormScreen(
             val r = details.recipe
             title = r.title
             description = r.description
-            executionDescription = r.executionDescription ?: ""
+            executionDescription = r.executionDescription
             selectedTags = r.tags
             existingPhotoPaths = details.photos.map { it.uri }
             ingredients = details.ingredients.map { entity ->
