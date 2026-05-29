@@ -56,11 +56,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.entity.RecipeTag
-import com.example.recipapp.data.entity.TagCategory
-import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DustyRose
-import com.example.recipapp.ui.theme.DustyRoseLight
-import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 /**
@@ -108,7 +103,7 @@ fun SearchScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = null,
-                        tint     = DeepTeal,
+                        tint     = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -144,14 +139,14 @@ fun SearchScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = null,
-                            tint = if (searchQuery.isNotEmpty()) DeepTeal
+                            tint = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear", tint = DeepTeal)
+                                Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     },
@@ -165,8 +160,8 @@ fun SearchScreen(
                         badge = {
                             if (selectedTags.isNotEmpty()) {
                                 Badge(
-                                    containerColor = DeepTeal,
-                                    contentColor   = MintCream
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor   = MaterialTheme.colorScheme.onPrimary
                                 ) {
                                     Text(selectedTags.size.toString(), style = MaterialTheme.typography.labelSmall)
                                 }
@@ -176,7 +171,7 @@ fun SearchScreen(
                         Icon(
                             imageVector        = Icons.Default.FilterList,
                             contentDescription = "Filters",
-                            tint               = if (selectedTags.isNotEmpty()) DeepTeal
+                            tint               = if (selectedTags.isNotEmpty()) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -202,10 +197,10 @@ fun SearchScreen(
                             },
                             shape  = RoundedCornerShape(50),
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = DeepTeal,
-                                selectedLabelColor     = MintCream,
-                                selectedLeadingIconColor = MintCream,
-                                selectedTrailingIconColor = MintCream
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onPrimary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                     }
@@ -236,7 +231,7 @@ fun SearchScreen(
                             )
                             if (selectedTags.isNotEmpty()) {
                                 TextButton(onClick = { viewModel.clearTagFilters() }) {
-                                    Text("Clear all", color = DustyRose, style = MaterialTheme.typography.labelLarge)
+                                    Text("Clear all", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
@@ -266,9 +261,9 @@ fun SearchScreen(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
                         shape  = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepTeal),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                         border = ButtonDefaults.outlinedButtonBorder(enabled = true)
-                            .copy(brush = androidx.compose.ui.graphics.SolidColor(DeepTeal))
+                            .copy(brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary))
                     ) {
                         Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
@@ -287,7 +282,7 @@ fun SearchScreen(
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = DeepTeal)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -305,7 +300,7 @@ fun SearchScreen(
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = null,
-                                tint     = DustyRose,
+                                tint     = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(48.dp)
                             )
 

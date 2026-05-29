@@ -17,9 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.data.entity.TagCategory
-import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DustyRoseLight
-import com.example.recipapp.ui.theme.MintCream
+
 
 /**
  * Composable for displaying a list of tags grouped by category.
