@@ -1,6 +1,5 @@
 package com.example.recipapp.data
 
-import androidx.room.Transaction
 import com.example.recipapp.data.dao.RecipeDao
 import com.example.recipapp.data.entity.IngredientEntity
 import com.example.recipapp.data.entity.PhotoEntity

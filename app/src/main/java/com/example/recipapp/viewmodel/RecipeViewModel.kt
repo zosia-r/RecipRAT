@@ -29,8 +29,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.util.UUID
 
-// Klasa pomocnicza łącząca dane z pól tekstowych formularza w UI
-data class IngredientInput(val name: String, val amount: String, val unit: String)
+/**
+ * ViewModel connects repository and UI.
+ */
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class RecipeViewModel(
@@ -38,8 +39,14 @@ class RecipeViewModel(
     private val repository: RecipeRepository
 ) : AndroidViewModel(application) {
 
-    val allRecipes: StateFlow<List<RecipeWithDetails>> = repository.allRecipes
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // ********** Recipe Flows **********
+    val allRecipes: StateFlow<List<RecipeWithDetails>> =
+        repository.allRecipes
+        .stateIn( // converts database Flow to stable StateFlow in RAM
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
 
     val favouriteRecipes: StateFlow<List<RecipeWithDetails>?> = repository.favouriteRecipes
         .stateIn(
@@ -47,23 +54,25 @@ class RecipeViewModel(
             SharingStarted.WhileSubscribed(5000),
             null)
 
-    // ── Wyszukiwanie ─────────────────────────────────────────────────────────
-
+    // ********** Search Flows **********
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _selectedTags = MutableStateFlow<Set<RecipeTag>>(emptySet())
+    // Expose read-only tags state to the UI to prevent accidental modifications
     val selectedTags: StateFlow<Set<RecipeTag>> = _selectedTags.asStateFlow()
 
-    // Szybkie wyszukiwanie delegowane bezpośrednio do silnika bazy danych SQLite
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    // Reactive search pipeline
+    @OptIn(ExperimentalCoroutinesApi::class)
     val searchResults: StateFlow<List<RecipeWithDetails>?> =
+        // Merge search queries and tag filters into a single combined data stream
         combine(_searchQuery, _selectedTags) { query, tags -> query to tags }
             .debounce(300)
             .flatMapLatest { (query, tags) ->
                 if (tags.isEmpty()) {
                     repository.searchRecipes(query)
                 } else {
+                    // Optimize performance by filtering the primary tag in SQL and remaining tags in RAM
                     val primaryTag = tags.first().name
                     repository.searchRecipesWithTag(query, primaryTag).map { list ->
                         list.filter { item ->
@@ -72,7 +81,7 @@ class RecipeViewModel(
                     }
                 }
             }
-            // Naprawione: Zmieniono typ strumienia na nullable i wstawiono null jako initialValue
+            // Convert the dynamic pipeline into a lifecycle-aware StateFlow
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -88,7 +97,7 @@ class RecipeViewModel(
 
     fun clearTagFilters() { _selectedTags.value = emptySet() }
 
-    // ── Zdjęcia dla PhotoViewera ──────────────────────────────────────────────
+    // ********** Photo Viewer **********
 
     private val _pendingPhotoUris = MutableStateFlow<List<String>>(emptyList())
     val pendingPhotoUris: StateFlow<List<String>> = _pendingPhotoUris.asStateFlow()
@@ -101,7 +110,7 @@ class RecipeViewModel(
         _pendingPhotoIndex.value = index
     }
 
-    // ── Akcje ────────────────────────────────────────────────────────────────
+    // ********** Recipe Actions **********
 
     fun addRecipe(
         title: String,
@@ -172,7 +181,7 @@ class RecipeViewModel(
         viewModelScope.launch { repository.toggleFavourite(id, !current) }
     }
 
-    // Pobiera powiązane pliki z dysku i usuwa je, zapobiegając powstawaniu śmieci w pamięci urządzenia
+    // Handle photo deletion
     fun deleteRecipe(recipe: RecipeEntity) {
         viewModelScope.launch {
             val fullRecipe = repository.getRecipeById(recipe.id).first()
@@ -185,6 +194,7 @@ class RecipeViewModel(
 
     fun getRecipeById(id: Long): Flow<RecipeWithDetails?> = repository.getRecipeById(id)
 
+    // Save photo to app storage
     private fun copyPhotoToAppStorage(context: Context, uri: Uri): String {
         val dir  = File(context.filesDir, "recipe_photos").also { it.mkdirs() }
         val file = File(dir, "${UUID.randomUUID()}.jpg")

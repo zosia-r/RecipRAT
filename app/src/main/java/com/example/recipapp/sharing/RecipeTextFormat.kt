@@ -1,4 +1,4 @@
-package com.example.recipapp.data.sharing
+package com.example.recipapp.sharing
 
 import com.example.recipapp.data.entity.RecipeTag
 import com.example.recipapp.viewmodel.IngredientInput
@@ -15,7 +15,7 @@ Format:
 <empty line>
 <description>          (optional)
 <empty line>
-Tags: 🍳 Breakfast, 🍬 Sweet       (opcjonalne)
+Tags: 🍳 Breakfast, 🍬 Sweet       (optional)
 <empty line>
 Ingredients:
 • Mąka (250 g)
@@ -26,14 +26,6 @@ Ingredients:
 Preparation:
 <steps>
  **/
-
-data class ParsedRecipe(
-    val title: String,
-    val description: String,
-    val ingredients: List<IngredientInput>,
-    val steps: String,
-    val tags: List<RecipeTag>
-)
 
 fun buildShareText(
     title: String,

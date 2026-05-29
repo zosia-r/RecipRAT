@@ -33,6 +33,7 @@ interface RecipeDao {
         photos: List<PhotoEntity>
     ) {
         val recipeId = insertRecipe(recipe)
+        // Link ingredients to the newly created recipe by assigning its generated ID to each ingredient
         insertIngredients(ingredients.map { it.copy(recipeId = recipeId) })
         insertPhotos(photos.map { it.copy(recipeId = recipeId) })
     }
@@ -54,15 +55,7 @@ interface RecipeDao {
     @Query("SELECT * FROM recipes WHERE title LIKE '%' || :query || '%' ORDER BY title ASC")
     fun searchRecipes(query: String): Flow<List<RecipeWithDetails>>
 
-    @Transaction
-    @Query("""
-        SELECT * FROM recipes 
-        WHERE '|||' || tags || '|||' 
-        LIKE '%|||' || :tag || '|||%' 
-        ORDER BY title ASC
-    """)
-    fun getRecipesByTag(tag: String): Flow<List<RecipeWithDetails>>
-
+    // Room handles the internal multi-table queries automatically to populate RecipeWithDetails
     @Transaction
     @Query("""
         SELECT * FROM recipes 
@@ -100,9 +93,6 @@ interface RecipeDao {
 
     @Query("DELETE FROM ingredients WHERE recipeId = :recipeId")
     suspend fun deleteIngredientsByRecipe(recipeId: Long)
-
-    @Query("DELETE FROM photos WHERE recipeId = :recipeId")
-    suspend fun deletePhotosByRecipe(recipeId: Long)
 
     @Query("DELETE FROM photos WHERE uri IN (:paths)")
     suspend fun deletePhotosByPaths(paths: List<String>)

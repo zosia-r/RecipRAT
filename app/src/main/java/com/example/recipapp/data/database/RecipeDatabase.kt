@@ -18,7 +18,7 @@ import com.example.recipapp.data.entity.RecipeEntity
 @Database(
     entities = [RecipeEntity::class, IngredientEntity::class, PhotoEntity::class],
     version = 3,
-    exportSchema = false
+    exportSchema = false // avoid extra files
 )
 @TypeConverters(Converters::class)
 abstract class RecipeDatabase : RoomDatabase() {
@@ -26,16 +26,18 @@ abstract class RecipeDatabase : RoomDatabase() {
     abstract fun recipeDao(): RecipeDao
 
     companion object {
-        @Volatile
+        @Volatile // make it visible to other threads
         private var INSTANCE: RecipeDatabase? = null
 
         fun getDatabase(context: Context): RecipeDatabase {
+            // if the INSTANCE is not null, then return it,
+            // if it is, then create the database
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
                     context.applicationContext,
                     RecipeDatabase::class.java,
                     "recipe_database"
-                ).fallbackToDestructiveMigration(dropAllTables = true).build().also { INSTANCE = it }
+                ).build().also { INSTANCE = it }
             }
         }
     }
