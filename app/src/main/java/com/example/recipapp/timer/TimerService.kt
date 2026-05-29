@@ -15,6 +15,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import com.example.recipapp.R
+import com.example.recipapp.util.toTimeString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,13 +27,29 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class TimerService : Service() {
+/**
+ * Foreground Service responsible for managing multiple cooking timers concurrently.
+ * * Architecture Overview:
+ * 1. UI Communication: Outwardly exposes timer states via a reactive StateFlow stream.
+ * Accepts control commands (START, STOP, DISMISS) through static Intent factory helpers.
+ * 2. Background Execution: Runs independent countdown loops on a background thread pool
+ * using Coroutines with isolated Supervisor jobs.
+ * 3. System Integration: Maintains a persistent foreground notification during active countdowns
+ * and fires high-priority alerts with sound and hardware vibration upon completion.
+ * 4. Resource Lifecycle: Automatically shuts down via stopSelf() when no active timers
+ * or ringing alarms remain, preventing resource and memory leaks.
+ */
 
+class TimerService : Service() {
+    // Delegate calculations to a background thread, isolate timer jobs from each other
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    // recipeId -> timer
     private val timerJobs    = mutableMapOf<Long, Job>()
+    // for playing music when timer finished
     private var mediaPlayer: MediaPlayer? = null
 
     companion object {
+        // Actions for timer service
         const val ACTION_START   = "START_TIMER"
         const val ACTION_STOP    = "STOP_TIMER"
         const val ACTION_DISMISS = "DISMISS_ALARM"
@@ -45,13 +62,15 @@ class TimerService : Service() {
         const val CHANNEL_ALARM = "alarm_channel"
         const val NOTIF_ONGOING = 1000
 
+        // Application state - UI can observe this
         private val _timers = MutableStateFlow<Map<Long, TimerState>>(emptyMap())
         val timers: StateFlow<Map<Long, TimerState>> = _timers.asStateFlow()
 
+        // ********** Intent factory helpers **********
         fun startTimer(context: Context, recipeId: Long, recipeTitle: String, durationSec: Int) {
             context.startForegroundService(Intent(context, TimerService::class.java).apply {
-                action = ACTION_START
-                putExtra(EXTRA_RECIPE_ID,    recipeId)
+                action = ACTION_START                                       // label the intent
+                putExtra(EXTRA_RECIPE_ID,    recipeId)      // add extra info to the intent
                 putExtra(EXTRA_RECIPE_TITLE, recipeTitle)
                 putExtra(EXTRA_DURATION_SEC, durationSec)
             })
@@ -72,27 +91,32 @@ class TimerService : Service() {
         }
     }
 
+    // ********** Receives all intents (actions) **********
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        createNotificationChannels()
+        createNotificationChannels()    // Every notification needs a channel
 
+        // Action = start new timer
         if (intent?.action == ACTION_START) {
             val recipeId = intent.getLongExtra(EXTRA_RECIPE_ID, -1)
-            val title       = intent.getStringExtra(EXTRA_RECIPE_TITLE) ?: "Przepis"
+            val title       = intent.getStringExtra(EXTRA_RECIPE_TITLE) ?: "Recipe"
             val durationSec = intent.getIntExtra(EXTRA_DURATION_SEC, 0)
             if (recipeId != -1L && durationSec > 0) {
                 startTimerFor(recipeId, title, durationSec)
             }
         }
 
+        // We need a notification for a background task
+        // Get existing or create new notification
         val initialNotification = buildOngoingNotification() ?: NotificationCompat.Builder(this, CHANNEL_TIMER)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("RecipApp Minutnik")
-            .setContentText("Uruchamianie odliczania...")
+            .setContentTitle("RecipRAT Timer")
+            .setContentText("Starting countdown...")
             .setContentIntent(getOpenAppPendingIntent(-1))
             .setOngoing(true)
             .setSilent(true)
             .build()
 
+        // safe start foreground service
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
@@ -103,17 +127,18 @@ class TimerService : Service() {
             } else {
                 startForeground(NOTIF_ONGOING, initialNotification)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
+            // Failed to start notification
             stopSelf()
             return START_NOT_STICKY
         }
 
-        when (intent?.action) {
+        when (intent?.action) { // Action = cancel timer
             ACTION_STOP -> {
                 val recipeId = intent.getLongExtra(EXTRA_RECIPE_ID, -1)
                 if (recipeId != -1L) cancelTimerFor(recipeId)
             }
-            ACTION_DISMISS -> {
+            ACTION_DISMISS -> { // Action = dismiss alarm
                 val recipeId = intent.getLongExtra(EXTRA_RECIPE_ID, -1)
                 if (recipeId != -1L) dismissAlarmFor(recipeId)
             }
@@ -122,10 +147,10 @@ class TimerService : Service() {
         return START_NOT_STICKY
     }
 
-    // ── Timer ─────────────────────────────────────────────────────────────────
 
+    // ********** Timer Core Logic **********
     private fun startTimerFor(recipeId: Long, title: String, durationSec: Int) {
-        timerJobs[recipeId]?.cancel()
+        timerJobs[recipeId]?.cancel()   // Cancel any existing timer for this recipe
 
         updateTimer(recipeId, TimerState.Running(
             recipeId     = recipeId,
@@ -134,9 +159,10 @@ class TimerService : Service() {
             remainingSec = durationSec
         ))
 
+        // Start a new timer job
         timerJobs[recipeId] = serviceScope.launch {
             var remaining = durationSec
-            while (remaining > 0) {
+            while (remaining > 0) { // Countdown
                 delay(1000)
                 remaining--
                 updateTimer(recipeId, TimerState.Running(
@@ -182,8 +208,7 @@ class TimerService : Service() {
         }
     }
 
-    // ── Helpers stanu ─────────────────────────────────────────────────────────
-
+    // ********** State management **********
     private fun updateTimer(recipeId: Long, state: TimerState) {
         _timers.value = _timers.value.toMutableMap().also { it[recipeId] = state }
     }
@@ -192,8 +217,7 @@ class TimerService : Service() {
         _timers.value = _timers.value.toMutableMap().also { it.remove(recipeId) }
     }
 
-    // ── Dźwięk i Wibracje ─────────────────────────────────────────────────────
-
+    // ********** Alarm - sound and vibration **********
     private fun playAlarmSound() {
         stopAlarmSound()
         mediaPlayer = MediaPlayer.create(this, R.raw.timer_alarm)?.apply {
@@ -214,29 +238,28 @@ class TimerService : Service() {
         val pattern = VibrationEffect.createWaveform(longArrayOf(0, 500, 300, 500, 300, 500), -1)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSystemService(VibratorManager::class.java).defaultVibrator.vibrate(pattern)
-        } else {
+        } else { // Legacy API
             @Suppress("DEPRECATION")
             getSystemService(Vibrator::class.java).vibrate(pattern)
         }
     }
 
-    // ── Powiadomienia ─────────────────────────────────────────────────────────
-
+    // ********** Notifications **********
     private fun createNotificationChannels() {
         val nm = getSystemService(NotificationManager::class.java)
 
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_TIMER, "Aktywne Minutniki", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_TIMER, "Active Timers", NotificationManager.IMPORTANCE_LOW)
         )
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ALARM, "Alarmy Minutnika", NotificationManager.IMPORTANCE_HIGH).apply {
+            NotificationChannel(CHANNEL_ALARM, "Timer Alarms", NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(null, null)
                 enableVibration(false)
             }
         )
     }
 
-    // Poprawione: Wykorzystuje bezpośrednie odniesienie do klasy MainActivity
+    // When user clicks on notification, open app on the correct recipe
     private fun getOpenAppPendingIntent(recipeId: Long): PendingIntent {
         val intent = Intent()
             .setClassName(packageName, "com.example.recipapp.MainActivity")
@@ -266,7 +289,7 @@ class TimerService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_TIMER)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("RecipApp Minutnik")
+            .setContentTitle("RecipRAT Timer")
             .setContentText(text)
             .setContentIntent(getOpenAppPendingIntent(-1))
             .setOngoing(true)
@@ -279,12 +302,7 @@ class TimerService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
 
         if (notification == null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-            } else {
-                @Suppress("DEPRECATION")
-                stopForeground(true)
-            }
+            stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(NOTIF_ONGOING, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
@@ -310,19 +328,20 @@ class TimerService : Service() {
             alarmNotifId(recipeId),
             NotificationCompat.Builder(this, CHANNEL_ALARM)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle("⏰ Czas minął!")
-                .setContentText("Danie \"$title\" jest gotowe!")
+                .setContentTitle("⏰ Time's up!")
+                .setContentText("\"$title\" is ready!")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setContentIntent(getOpenAppPendingIntent(recipeId))
                 .setAutoCancel(true)
-                .addAction(android.R.drawable.ic_delete, "Wyłącz", dismissPending)
+                .addAction(android.R.drawable.ic_delete, "Dismiss", dismissPending)
                 .build()
         )
     }
 
     private fun alarmNotifId(recipeId: Long) = (2000 + recipeId).toInt()
 
+    // ********** Lifecycle **********
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
@@ -331,5 +350,3 @@ class TimerService : Service() {
         super.onDestroy()
     }
 }
-
-fun Int.toTimeString(): String = "%02d:%02d".format(this / 60, this % 60)
