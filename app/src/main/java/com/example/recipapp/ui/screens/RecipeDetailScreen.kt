@@ -79,16 +79,14 @@ import com.example.recipapp.data.entity.getDisplayDetails
 import com.example.recipapp.sharing.buildShareText
 import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
-import com.example.recipapp.ui.theme.CherryRose
-import com.example.recipapp.ui.theme.CoffeeBean
-import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DustyRose
-import com.example.recipapp.ui.theme.DustyRoseLight
-import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.util.formatIngredientAmount
 import com.example.recipapp.util.toTimeString
 import com.example.recipapp.viewmodel.IngredientInput
 import com.example.recipapp.viewmodel.RecipeViewModel
+
+/**
+ * Screen for displaying a single recipe.
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,7 +155,7 @@ fun RecipeDetailScreen(
                                 Text(
                                     text  = timerState.remainingSec.toTimeString(),
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = DeepTeal
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -166,7 +164,7 @@ fun RecipeDetailScreen(
                                 imageVector = if (timerState is TimerState.Running)
                                     Icons.Filled.Timer else Icons.Outlined.Timer,
                                 contentDescription = "Timer",
-                                tint = if (timerState is TimerState.Running) DeepTeal
+                                tint = if (timerState is TimerState.Running) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -177,7 +175,7 @@ fun RecipeDetailScreen(
                             imageVector = if (r.isFavourite)
                                 Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "Favourite",
-                            tint = if (r.isFavourite) CherryRose
+                            tint = if (r.isFavourite) MaterialTheme.colorScheme.tertiary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -192,12 +190,12 @@ fun RecipeDetailScreen(
                         ) {
                             DropdownMenuItem(
                                 text        = { Text("Edit", style = MaterialTheme.typography.bodyMedium) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = DeepTeal) },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                                 onClick     = { showMenu = false; onNavigateToEdit(r.id) }
                             )
                             DropdownMenuItem(
                                 text        = { Text("Share", style = MaterialTheme.typography.bodyMedium) },
-                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = DeepTeal) },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                                 onClick     = {
                                     showMenu = false
                                     val mappedIngredients = recipeWithDetails!!.ingredients.map { entity ->
@@ -224,8 +222,8 @@ fun RecipeDetailScreen(
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             DropdownMenuItem(
-                                text        = { Text("Delete", color = CherryRose, style = MaterialTheme.typography.bodyMedium) },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = CherryRose) },
+                                text        = { Text("Delete", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.bodyMedium) },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
                                 onClick     = { showMenu = false; showDeleteDialog = true }
                             )
                         }
@@ -242,7 +240,7 @@ fun RecipeDetailScreen(
 
         if (recipeWithDetails == null) {
             Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = DeepTeal)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             val photos       = recipeWithDetails!!.photos
@@ -284,7 +282,7 @@ fun RecipeDetailScreen(
                                     Surface(
                                         modifier = Modifier.size(if (selected) 8.dp else 6.dp),
                                         shape    = CircleShape,
-                                        color    = if (selected) MintCream else MintCream.copy(alpha = 0.45f)
+                                        color    = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.surface
                                     ) {}
                                 }
                             }
@@ -306,7 +304,7 @@ fun RecipeDetailScreen(
                             tags.forEach { tag ->
                                 Surface(
                                     shape    = RoundedCornerShape(50),
-                                    color    = DustyRoseLight,
+                                    color    = MaterialTheme.colorScheme.surfaceVariant,
                                     modifier = Modifier.height(26.dp)
                                 ) {
                                     Box(
@@ -348,18 +346,18 @@ fun RecipeDetailScreen(
                                 Text(
                                     text = "Portion size: ${formatIngredientAmount(scaleFactor.toDouble())}x",
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = CoffeeBean
+                                    color = MaterialTheme.colorScheme.onSecondary
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     TextButton(
                                         onClick = { if (scaleFactor > 0.25f) scaleFactor -= 0.25f },
                                         enabled = scaleFactor > 0.25f
                                     ) {
-                                        Text("-", style = MaterialTheme.typography.labelLarge, color = CoffeeBean)
+                                        Text("-", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondary)
                                     }
 
                                     TextButton(onClick = { scaleFactor += 0.25f }) {
-                                        Text("+", style = MaterialTheme.typography.labelLarge, color = CoffeeBean)
+                                        Text("+", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondary)
                                     }
                                 }
                             }
@@ -378,8 +376,8 @@ fun RecipeDetailScreen(
                                         checked         = isChecked,
                                         onCheckedChange = { checkedIngredients[index] = it },
                                         colors          = CheckboxDefaults.colors(
-                                            checkedColor   = DeepTeal,
-                                            checkmarkColor = MintCream
+                                            checkedColor   = MaterialTheme.colorScheme.primary,
+                                            checkmarkColor = MaterialTheme.colorScheme.onPrimary
                                         )
                                     )
 
@@ -409,7 +407,7 @@ fun RecipeDetailScreen(
                                             color = if (isChecked)
                                                 MaterialTheme.colorScheme.onSurfaceVariant
                                             else
-                                                DeepTeal,
+                                                MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(start = 8.dp)
                                         )
                                     }
@@ -428,7 +426,7 @@ fun RecipeDetailScreen(
                                     onClick  = { checkedIngredients.clear() },
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
-                                    Text("Reset checks", color = DustyRose, style = MaterialTheme.typography.labelLarge)
+                                    Text("Reset checks", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
@@ -471,7 +469,7 @@ fun RecipeDetailScreen(
             confirmButton = {
                 Button(
                     onClick = { TimerService.dismissAlarm(context, recipeId) },
-                    colors  = ButtonDefaults.buttonColors(containerColor = DeepTeal, contentColor = MintCream),
+                    colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape   = RoundedCornerShape(12.dp)
                 ) {
                     Text("OK, got it!", style = MaterialTheme.typography.labelLarge)
@@ -493,7 +491,7 @@ fun RecipeDetailScreen(
                         viewModel.deleteRecipe(recipe!!)
                         onNavigateBack()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CherryRose, contentColor = MintCream),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary, contentColor = MaterialTheme.colorScheme.onTertiary),
                     shape  = RoundedCornerShape(12.dp)
                 ) {
                     Text("Delete", style = MaterialTheme.typography.labelLarge)
@@ -501,7 +499,7 @@ fun RecipeDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel", color = DeepTeal, style = MaterialTheme.typography.labelLarge)
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
             },
             shape = RoundedCornerShape(20.dp)
@@ -533,7 +531,7 @@ private fun TimerSetDialog(
                     Text(
                         text  = "Running: ${currentTimer.remainingSec.toTimeString()}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = DeepTeal
+                        color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
@@ -555,7 +553,7 @@ private fun TimerSetDialog(
                         shape           = RoundedCornerShape(12.dp),
                         colors          = recipeTextFieldColors()
                     )
-                    Text(":", style = MaterialTheme.typography.headlineMedium, color = DeepTeal)
+                    Text(":", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     OutlinedTextField(
                         value           = seconds,
                         onValueChange   = { if (it.length <= 2) seconds = it.filter { c -> c.isDigit() } },
@@ -576,7 +574,7 @@ private fun TimerSetDialog(
                     val s = seconds.toIntOrNull() ?: 0
                     if (m > 0 || s > 0) onStart(m, s)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = DeepTeal, contentColor = MintCream),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onTertiary),
                 shape  = RoundedCornerShape(12.dp)
             ) {
                 Text("Start", style = MaterialTheme.typography.labelLarge)
@@ -586,11 +584,11 @@ private fun TimerSetDialog(
             Row {
                 if (currentTimer != null) {
                     TextButton(onClick = onStop) {
-                        Text("Stop timer", color = CherryRose, style = MaterialTheme.typography.labelLarge)
+                        Text("Stop timer", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
                     }
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel", color = DeepTeal, style = MaterialTheme.typography.labelLarge)
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
             }
         },
@@ -612,7 +610,7 @@ private fun DetailSectionCard(title: String, content: @Composable ColumnScope.()
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium,
-                color = DeepTeal
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.height(10.dp))
             content()
