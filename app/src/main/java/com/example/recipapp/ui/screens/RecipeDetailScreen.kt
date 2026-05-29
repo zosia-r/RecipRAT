@@ -75,6 +75,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.recipapp.data.entity.getDisplayDetails
 import com.example.recipapp.sharing.buildShareText
 import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
@@ -86,7 +87,6 @@ import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.util.formatIngredientAmount
-import com.example.recipapp.util.getDisplayDetails
 import com.example.recipapp.viewmodel.IngredientInput
 import com.example.recipapp.viewmodel.RecipeViewModel
 
