@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,8 +29,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.recipapp.ui.theme.CherryRose
+import com.example.recipapp.ui.theme.DeepTeal
 import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.viewmodel.RecipeViewModel
+
+/**
+ * Screen for displaying a list of favourite recipes.
+ * Three possible states:
+ * 1. Data not yet loaded -> loading indicator
+ * 2. Empty data -> info 'no favourites'
+ * 3. Data loaded -> list of recipes
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +47,6 @@ fun FavouritesScreen(
     viewModel: RecipeViewModel,
     onRecipeClick: (Long) -> Unit
 ) {
-    // Naprawione: Stan początkowy to null. Zapobiega to domyślnemu renderowaniu pustego ekranu zanim Room zwróci dane.
     val recipes by viewModel.favouriteRecipes.collectAsState(initial = null)
 
     val onToggleFavouriteStable = remember(viewModel) {
@@ -81,19 +90,19 @@ fun FavouritesScreen(
             )
         )
 
-        // Naprawione: Blok when precyzyjnie rozróżnia ładowanie, pustą bazę oraz listę gotową do wyświetlenia
+
         when {
-            // STAN 1: Dane są w drodze z bazy Room (null). Pokazujemy czysty kontener - brak efektu migania layoutu.
+            // State 1: data not yet loaded -> loading indicator
             recipes == null -> {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Można tu opcjonalnie wstawić CircularProgressIndicator(color = DeepTeal)
+                    CircularProgressIndicator(color = DeepTeal)
                 }
             }
 
-            // STAN 2: Dane dotarły i lista jest faktycznie pusta.
+            // State 2: empty data -> no favourites
             recipes!!.isEmpty() -> {
                 Box(
                     modifier       = Modifier.weight(1f).fillMaxSize(),
@@ -125,8 +134,7 @@ fun FavouritesScreen(
                 }
             }
 
-            // STAN 3: Dane załadowane pomyślnie. Renderujemy listę.
-            else -> {
+            else -> { // State 3: data loaded -> list of recipes
                 LazyColumn(
                     modifier            = Modifier.weight(1f).fillMaxSize(),
                     contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
