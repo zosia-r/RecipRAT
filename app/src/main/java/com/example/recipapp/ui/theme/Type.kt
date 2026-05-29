@@ -9,7 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.recipapp.R
 
-// ── Playfair Display — tytuły ──────────────────────────────────────
+// ── Playfair Display — titles ──────────────────────────────────────
 private val PlayfairDisplay = FontFamily(
     Font(R.font.playfair_display_regular,  FontWeight.Normal),
     Font(R.font.playfair_display_medium,   FontWeight.Medium),

@@ -12,9 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// ──────────────────────────────────────────────────────────────────
-//  JASNY schemat kolorów
-// ──────────────────────────────────────────────────────────────────
 private val LightColorScheme = lightColorScheme(
     primary          = DeepTeal,
     onPrimary        = MintCream,
@@ -54,14 +51,13 @@ private val LightColorScheme = lightColorScheme(
     scrim            = CoffeeBean
 )
 
-// ──────────────────────────────────────────────────────────────────
-//  Główny composable tematu
-// ──────────────────────────────────────────────────────────────────
+
 @Composable
 fun RecipAppTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // use system colors if dynamic color == true and API >= 31
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             dynamicLightColorScheme(LocalContext.current)
@@ -69,6 +65,7 @@ fun RecipAppTheme(
         else -> LightColorScheme
     }
 
+    // Change notification bar theme to match app theme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
