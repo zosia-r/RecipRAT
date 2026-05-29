@@ -28,9 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.recipapp.ui.theme.CherryRose
-import com.example.recipapp.ui.theme.DeepTeal
-import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.viewmodel.RecipeViewModel
 
 /**
@@ -75,7 +72,7 @@ fun FavouritesScreen(
                     Icon(
                         Icons.Default.Favorite,
                         contentDescription = null,
-                        tint     = CherryRose,
+                        tint     = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -98,7 +95,7 @@ fun FavouritesScreen(
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = DeepTeal)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -116,7 +113,7 @@ fun FavouritesScreen(
                         Icon(
                             Icons.Default.Favorite,
                             contentDescription = null,
-                            tint     = DustyRose,
+                            tint     = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(56.dp)
                         )
                         Text(
