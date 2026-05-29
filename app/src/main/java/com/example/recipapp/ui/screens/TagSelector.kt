@@ -2,6 +2,7 @@ package com.example.recipapp.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,10 +42,14 @@ fun TagSelector(
         TagCategory.entries.forEach { category ->
             val tagsInCategory = tagsByCategory[category] ?: emptyList()
 
+            val selectedInCategory = tagsInCategory.count { it in selectedTags }
+
             Text(
-                text  = category.label,
+                text  = category.label + if (selectedInCategory > 0) " ($selectedInCategory)" else "",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = if (selectedInCategory > 0) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
             )
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

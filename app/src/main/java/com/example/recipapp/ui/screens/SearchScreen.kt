@@ -233,35 +233,11 @@ fun SearchScreen(
                             }
                         }
 
-                        TagCategory.entries.forEach { category ->
-                            val tagsInCategory     = RecipeTag.entries.filter { it.category == category }
-                            val selectedInCategory = tagsInCategory.count { it in selectedTags }
-
-                            Text(
-                                text = category.label + if (selectedInCategory > 0) " ($selectedInCategory)" else "",
-                                style    = MaterialTheme.typography.labelMedium,
-                                color    = if (selectedInCategory > 0) DeepTeal else DustyRose,
-                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                            )
-
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                tagsInCategory.forEach { tag ->
-                                    val selected = tag in selectedTags
-                                    FilterChip(
-                                        selected = selected,
-                                        onClick  = { onTagToggledStable(tag) },
-                                        label    = { Text(tag.label, style = MaterialTheme.typography.labelMedium) },
-                                        shape    = RoundedCornerShape(50),
-                                        colors   = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = DeepTeal,
-                                            selectedLabelColor     = MintCream,
-                                            containerColor         = DustyRoseLight,
-                                            labelColor             = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    )
-                                }
-                            }
-                        }
+                        TagSelector(
+                            selectedTags = selectedTags.toList(),
+                            onTagToggle  = onTagToggledStable,
+                            modifier     = Modifier.padding(top = 4.dp)
+                        )
 
                         if (selectedTags.map { it.category }.distinct().size > 1) {
                             Text(
