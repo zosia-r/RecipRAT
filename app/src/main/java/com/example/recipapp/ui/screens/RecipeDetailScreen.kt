@@ -111,7 +111,7 @@ fun RecipeDetailScreen(
         )
     }
     val checkedIngredients = rememberSaveable(saver = checkedIngredientsMapSaver) {
-        mutableStateMapOf<Int, Boolean>()
+        mutableStateMapOf()
     }
 
     val allTimers by TimerService.timers.collectAsState()
@@ -435,7 +435,7 @@ fun RecipeDetailScreen(
                     if (recipe?.executionDescription?.isNotBlank() == true) {
                         DetailSectionCard(title = "Instructions") {
                             Text(
-                                recipe.executionDescription ?: "",
+                                recipe.executionDescription,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
