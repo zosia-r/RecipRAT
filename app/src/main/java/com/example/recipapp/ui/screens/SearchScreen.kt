@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -58,6 +59,14 @@ import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.viewmodel.RecipeViewModel
 
+/**
+ * Screen for searching recipes.
+ * Three possible states:
+ * 1. Data not yet loaded -> loading indicator
+ * 2. Empty data -> no results
+ * 3. Data loaded -> list of recipes
+ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -67,7 +76,6 @@ fun SearchScreen(
     val searchQuery   by viewModel.searchQuery.collectAsState()
     val selectedTags  by viewModel.selectedTags.collectAsState()
 
-    // Naprawione: Stan początkowy ustawiony na null chroni przed miganiem pustego layoutu
     val searchResults by viewModel.searchResults.collectAsState(initial = null)
 
     var showFilters by remember { mutableStateOf(false) }
@@ -119,7 +127,6 @@ fun SearchScreen(
         ) {
             Spacer(Modifier.height(4.dp))
 
-            // ── Pasek wyszukiwania + przycisk filtrów ─────────────────────────
             Row(
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -172,7 +179,6 @@ fun SearchScreen(
                 }
             }
 
-            // ── Aktywne filtry-pigułki pod paskiem ────────────────────────────
             if (!showFilters && selectedTags.isNotEmpty()) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -202,7 +208,6 @@ fun SearchScreen(
                 }
             }
 
-            // ── Panel filtrów (rozwijany) ──────────────────────────────────────
             AnimatedVisibility(visible = showFilters) {
                 Column {
                     Column(
@@ -290,17 +295,19 @@ fun SearchScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── Wyniki wyszukiwania (Naprawione zarządzanie stanem null) ──────
+            // ********** Search results **********
             when {
-                // STAN 1: Trwa przetwarzanie zapytania SQL lub filtru (null). Pokazujemy stabilną przestrzeń.
+                // State 1: data not yet loaded -> loading indicator
                 searchResults == null -> {
                     Box(
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         contentAlignment = Alignment.Center
-                    ) {}
+                    ) {
+                        CircularProgressIndicator(color = DeepTeal)
+                    }
                 }
 
-                // STAN 2: Zapytanie zwróciło pustą kolekcję.
+                // State 2: empty data -> no results
                 searchResults!!.isEmpty() -> {
                     Box(
                         modifier       = Modifier.weight(1f).fillMaxSize(),
@@ -342,7 +349,7 @@ fun SearchScreen(
                     }
                 }
 
-                // STAN 3: Wyniki są obecne i poprawne.
+                // State 3: data loaded -> list of recipes
                 else -> {
                     LazyColumn(
                         modifier            = Modifier.weight(1f).fillMaxSize(),

@@ -134,7 +134,8 @@ fun FavouritesScreen(
                 }
             }
 
-            else -> { // State 3: data loaded -> list of recipes
+            // State 3: data loaded -> list of recipes
+            else -> {
                 LazyColumn(
                     modifier            = Modifier.weight(1f).fillMaxSize(),
                     contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
