@@ -32,6 +32,11 @@ import com.example.recipapp.data.relation.RecipeWithDetails
 import com.example.recipapp.ui.theme.CherryRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 
+/**
+ * Card for displaying a recipe.
+ * Title, description, tags, favourite button.
+ */
+
 @Composable
 fun RecipeCard(
     recipeWithDetails: RecipeWithDetails,
@@ -41,7 +46,6 @@ fun RecipeCard(
     val recipe = recipeWithDetails.recipe
     val tags = recipe.tags
 
-    // Optymalizacja referencji dla zapobiegania niepotrzebnym rekompozycjom karty potrawy
     val onToggleStable = remember(onToggleFavourite) { onToggleFavourite }
     val onClickStable = remember(onClick) { onClick }
 
@@ -105,10 +109,9 @@ fun RecipeCard(
                     verticalArrangement   = Arrangement.spacedBy(4.dp)
                 ) {
                     tags.forEach { tag ->
-                        // Usunięto problematyczny blok key(), zapewniając pełną kompatybilność i stabilność layoutu
                         Surface(
                             shape    = RoundedCornerShape(50),
-                            color    = DustyRoseLight,
+                            color    = MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.height(26.dp)
                         ) {
                             Box(
