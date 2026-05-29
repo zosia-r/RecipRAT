@@ -27,6 +27,7 @@ import com.example.recipapp.R
 fun SplashScreen(onTimeout: () -> Unit) {
     val context = LocalContext.current
 
+    // Create the player only once
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             val uri = "android.resource://${context.packageName}/${R.raw.intro_video}"
@@ -37,21 +38,23 @@ fun SplashScreen(onTimeout: () -> Unit) {
         }
     }
 
-
-    // Reakcja na koniec wideo (pozostawiamy jako opcję alternatywną, gdy użytkownik nie kliknie)
+    // Exit on video end
     LaunchedEffect(exoPlayer) {
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED) onTimeout()
+                if (state == Player.STATE_ENDED) {
+                    onTimeout()
+                }
             }
         })
     }
 
+    // Release the player
     DisposableEffect(Unit) {
         onDispose { exoPlayer.release() }
     }
 
-    // Dodano clickable do głównego kontenera
+    // Detect screen tap to exit
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -61,8 +64,6 @@ fun SplashScreen(onTimeout: () -> Unit) {
                 onClick = { onTimeout() }
             )
     ) {
-
-        // ── Warstwa filmowa ───────────────────────────────────────────────────
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = {
