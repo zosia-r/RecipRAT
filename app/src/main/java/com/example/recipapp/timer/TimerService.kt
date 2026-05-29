@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -210,11 +211,15 @@ class TimerService : Service() {
 
     // ********** State management **********
     private fun updateTimer(recipeId: Long, state: TimerState) {
-        _timers.value = _timers.value.toMutableMap().also { it[recipeId] = state }
+        _timers.update { currentMap ->
+            currentMap.toMutableMap().also { it[recipeId] = state }
+        }
     }
 
     private fun removeTimer(recipeId: Long) {
-        _timers.value = _timers.value.toMutableMap().also { it.remove(recipeId) }
+        _timers.update { currentMap ->
+            currentMap.toMutableMap().also { it.remove(recipeId) }
+        }
     }
 
     // ********** Alarm - sound and vibration **********
@@ -304,11 +309,6 @@ class TimerService : Service() {
         if (notification == null) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIF_ONGOING, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-            } else {
-                startForeground(NOTIF_ONGOING, notification)
-            }
             nm.notify(NOTIF_ONGOING, notification)
         }
     }

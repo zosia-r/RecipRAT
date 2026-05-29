@@ -79,7 +79,6 @@ import com.example.recipapp.data.entity.getDisplayDetails
 import com.example.recipapp.sharing.buildShareText
 import com.example.recipapp.timer.TimerService
 import com.example.recipapp.timer.TimerState
-import com.example.recipapp.timer.toTimeString
 import com.example.recipapp.ui.theme.CherryRose
 import com.example.recipapp.ui.theme.CoffeeBean
 import com.example.recipapp.ui.theme.DeepTeal
@@ -87,6 +86,7 @@ import com.example.recipapp.ui.theme.DustyRose
 import com.example.recipapp.ui.theme.DustyRoseLight
 import com.example.recipapp.ui.theme.MintCream
 import com.example.recipapp.util.formatIngredientAmount
+import com.example.recipapp.util.toTimeString
 import com.example.recipapp.viewmodel.IngredientInput
 import com.example.recipapp.viewmodel.RecipeViewModel
 
