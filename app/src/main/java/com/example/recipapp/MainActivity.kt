@@ -23,10 +23,11 @@ class MainActivity : ComponentActivity() {
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* przyznano lub odmówiono – obsługujemy po cichu */ }
+    ) {}
 
-    // SharedFlow przekazujący recipeId do MainScreen gdy app jest już otwarta
     companion object {
+
+        // Pending recipe ID for timer notification
         private val _pendingRecipeId = MutableStateFlow<Long?>(null)
         val pendingRecipeId: StateFlow<Long?> = _pendingRecipeId.asStateFlow()
         fun clearPendingRecipeId() {
@@ -38,24 +39,22 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // ── UKRYWANIE TYLKO DOLNEGO PASKA DLA CAŁEJ APLIKACJI ──────────────
+        // Immersive mode
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        // Ukrywa wyłącznie pasek nawigacyjny (navigationBars)
         insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
-        // Pozwala na tymczasowe pokazanie paska gestem od dolnej krawędzi
         insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        // ──────────────────────────────────────────────────────────────────
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // Obsłuż deep link przy cold starcie / gdy app była zabita
         handleTimerIntent(intent)
 
         setContent {
             RecipAppTheme {
                 val navController = rememberNavController()
 
+                // First screen - splash
                 NavHost(navController = navController, startDestination = "splash") {
                     composable("splash") {
                         SplashScreen(onTimeout = {
@@ -64,6 +63,7 @@ class MainActivity : ComponentActivity() {
                             }
                         })
                     }
+                    // on timeout, navigate to main screen
                     composable("main") {
                         MainScreen(pendingRecipeId = pendingRecipeId)
                     }
@@ -75,10 +75,10 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Obsłuż deep link gdy app jest już otwarta na ekranie
         handleTimerIntent(intent)
     }
 
+    // Handle pending recipe ID from timer notification
     private fun handleTimerIntent(intent: Intent?) {
         val recipeId = intent?.getLongExtra("LAUNCH_RECIPE_ID", -1L) ?: -1L
         if (recipeId != -1L) {
