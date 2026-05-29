@@ -334,7 +334,6 @@ fun RecipeDetailScreen(
 
                     val ingredients = recipeWithDetails!!.ingredients
                     if (ingredients.isNotEmpty()) {
-                        // Reaktywny mnożnik porcji, odporny na obrót ekranu
                         var scaleFactor by rememberSaveable { mutableFloatStateOf(1f) }
 
                         DetailSectionCard(title = "Ingredients") {
@@ -394,7 +393,6 @@ fun RecipeDetailScreen(
                                         modifier = Modifier.weight(1f)
                                     )
 
-                                    // Dynamicznie obliczany tekst na podstawie wybranej skali porcji
                                     val displayDetails = ingredient.getDisplayDetails(scaleFactor)
 
                                     if (displayDetails.isNotEmpty()) {
@@ -472,7 +470,7 @@ fun RecipeDetailScreen(
                     colors  = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape   = RoundedCornerShape(12.dp)
                 ) {
-                    Text("OK, got it!", style = MaterialTheme.typography.labelLarge)
+                    Text("OK!", style = MaterialTheme.typography.labelLarge)
                 }
             },
             shape = RoundedCornerShape(20.dp)
