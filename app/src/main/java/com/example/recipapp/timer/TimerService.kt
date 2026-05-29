@@ -29,16 +29,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Foreground Service responsible for managing multiple cooking timers concurrently.
- * * Architecture Overview:
- * 1. UI Communication: Outwardly exposes timer states via a reactive StateFlow stream.
- * Accepts control commands (START, STOP, DISMISS) through static Intent factory helpers.
- * 2. Background Execution: Runs independent countdown loops on a background thread pool
- * using Coroutines with isolated Supervisor jobs.
- * 3. System Integration: Maintains a persistent foreground notification during active countdowns
- * and fires high-priority alerts with sound and hardware vibration upon completion.
- * 4. Resource Lifecycle: Automatically shuts down via stopSelf() when no active timers
- * or ringing alarms remain, preventing resource and memory leaks.
+ * The heart of the app's cooking timer.
+ * * This file handles counting down the cooking time for multiple recipes at once.
+ * It runs as a Foreground Service, which means the timer won't stop even if
+ * you lock your phone or leave the app.
+ * * It sends real-time updates to the screen every second, and when the time is up,
+ * it triggers a loud alarm, vibrates the device, and shows a "Time's up!" notification.
  */
 
 class TimerService : Service() {
